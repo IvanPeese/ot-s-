@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Diaria — Almacén A</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f7f4; --surface: #ffffff; --surface2: #f1efe9;
+  --border: rgba(0,0,0,0.09); --border-md: rgba(0,0,0,0.16);
+  --text: #1a1a18; --text2: #6b6a64; --text3: #9e9c95;
+  --danger-bg: #fdf0ef; --danger-txt: #9b2c2c; --danger-bdr: #f5c0bc;
+  --warn-bg:   #fef9ec; --warn-txt:   #92600a; --warn-bdr:   #f5dfa0;
+  --ok-bg:     #eef7f1; --ok-txt:     #1e6b3e; --ok-bdr:     #b3ddc4;
+  --info-bg:   #eef4fd; --info-txt:   #1a4f8a; --info-bdr:   #b8d0f5;
+  --r: 8px; --rl: 12px;
+  --font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131311; --surface: #1e1e1b; --surface2: #272724;
+    --border: rgba(255,255,255,0.08); --border-md: rgba(255,255,255,0.15);
+    --text: #e8e6df; --text2: #9e9c94; --text3: #6b6a63;
+    --danger-bg: #2a1515; --danger-txt: #f08080; --danger-bdr: #5c2020;
+    --warn-bg:   #231e0d; --warn-txt:   #d4a240; --warn-bdr:   #5a4510;
+    --ok-bg:     #0e2016; --ok-txt:     #5dbf82; --ok-bdr:     #1e5035;
+    --info-bg:   #0d1a2e; --info-txt:   #6baaf5; --info-bdr:   #1e3d6e;
+  }
+}
+
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+/* ── HEADER ── */
+.hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 11px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.hdr h1 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.hdr p  { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.hdr-r  { display: flex; align-items: center; gap: 12px; }
+.dot    { width: 7px; height: 7px; border-radius: 50%; background: var(--warn-txt); display: inline-block; transition: background .4s; flex-shrink: 0; }
+.status { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+
+/* ── UPLOAD ── */
+.upload-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); padding: 24px; }
+.upload { max-width: 440px; width: 100%; padding: 36px 32px; border: 1.5px dashed var(--border-md); border-radius: var(--rl); text-align: center; background: var(--surface); transition: border-color .15s, background .15s; }
+.upload.drag { border-color: var(--info-txt); background: var(--info-bg); }
+.upload h2    { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+.upload p     { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.upload small { display: block; font-size: 11px; color: var(--text3); margin-top: 14px; }
+input[type=file] { display: none; }
+.btn-up { display: inline-block; padding: 8px 22px; background: var(--text); color: var(--bg); border-radius: var(--r); font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+.btn-up:hover { opacity: .82; }
+.btn-sm { font-size: 11px; padding: 4px 11px; border: 1px solid var(--border-md); border-radius: var(--r); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font); white-space: nowrap; transition: background .12s, color .12s; }
+.btn-sm:hover { background: var(--surface2); color: var(--text); }
+
+/* ── APP ── */
+#app { display: none; }
+
+/* ── KPI BAR ── */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.kpi     { padding: 9px 11px; background: var(--surface2); border-radius: var(--r); }
+.kpi-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); margin-bottom: 3px; }
+.kpi-val { font-size: 20px; font-weight: 600; line-height: 1; }
+.kpi-val.d  { color: var(--danger-txt); }
+.kpi-val.w  { color: var(--warn-txt); }
+.kpi-val.ok { color: var(--ok-txt); }
+.kpi-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ── MAIN TABS ── */
+.main-tabs { display: flex; gap: 0; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.main-tabs::-webkit-scrollbar { display: none; }
+.mtab { padding: 9px 15px 10px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; user-select: none; transition: color .12s; }
+.mtab:hover { color: var(--text); }
+.mtab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+.tbadge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: var(--surface2); color: var(--text2); margin-left: 5px; vertical-align: middle; transition: background .2s, color .2s; }
+.tbadge.alert { background: var(--danger-bg); color: var(--danger-txt); border: 1px solid var(--danger-bdr); }
+
+/* ── ZONE PILLS ── */
+.zbar { display: flex; gap: 5px; padding: 12px 24px 0; flex-wrap: wrap; }
+.zpill { font-size: 12px; padding: 4px 13px; border-radius: 20px; border: 1px solid var(--border-md); background: var(--surface); color: var(--text2); cursor: pointer; user-select: none; transition: all .12s; white-space: nowrap; }
+.zpill:hover { border-color: var(--text3); color: var(--text); }
+.zpill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.zpill .zn { font-size: 10px; opacity: .65; margin-left: 3px; }
+.zpill-sep { width: 1px; background: var(--border-md); margin: 4px 3px; align-self: stretch; display: inline-block; }
+
+/* ── PANELS ── */
+.panel { display: none; padding: 14px 24px 24px; }
+.panel.active { display: block; }
+.panel-inner { padding-top: 12px; }
+
+/* ── ALERTAS ── */
+.alerta { display: flex; align-items: flex-start; gap: 12px; padding: 11px 13px; border-radius: var(--r); margin-bottom: 7px; border: 1px solid; }
+.alerta.d  { background: var(--danger-bg); border-color: var(--danger-bdr); }
+.alerta.w  { background: var(--warn-bg);   border-color: var(--warn-bdr); }
+.alerta.ok { background: var(--ok-bg);     border-color: var(--ok-bdr); }
+.alerta-ico  { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+.alerta-body { flex: 1; min-width: 0; }
+.alerta-ttl  { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.alerta.d  .alerta-ttl { color: var(--danger-txt); }
+.alerta.w  .alerta-ttl { color: var(--warn-txt); }
+.alerta.ok .alerta-ttl { color: var(--ok-txt); }
+.alerta-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.alerta-act  { flex-shrink: 0; }
+
+/* ── NOTA INFORMATIVA ── */
+.nota { font-size: 11px; color: var(--text3); padding: 6px 10px; background: var(--surface2); border-radius: var(--r); margin-bottom: 10px; border-left: 2px solid var(--border-md); }
+
+/* ── FILTROS ── */
+.frow { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.frow input[type=text], .frow select {
+  font-size: 12px; padding: 6px 10px; border: 1px solid var(--border-md); border-radius: var(--r);
+  background: var(--surface); color: var(--text); font-family: var(--font); transition: border-color .12s;
+}
+.frow input[type=text] { flex: 1; min-width: 180px; }
+.frow input:focus, .frow select:focus { outline: none; border-color: var(--text3); }
+.fctr { font-size: 11px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+
+/* ── TABLA ── */
+.tw { border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: var(--surface2); padding: 7px 11px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody td { padding: 6px 11px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface2); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.mc  { font-family: var(--mono); font-size: 11px; }
+.dc  { max-width: 230px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td.neg { color: var(--danger-txt); font-weight: 600; }
+
+/* ── CHIPS ── */
+.chip { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; border: 1px solid; }
+.chip.d  { background: var(--danger-bg); color: var(--danger-txt); border-color: var(--danger-bdr); }
+.chip.w  { background: var(--warn-bg);   color: var(--warn-txt);   border-color: var(--warn-bdr); }
+.chip.ok { background: var(--ok-bg);     color: var(--ok-txt);     border-color: var(--ok-bdr); }
+.chip.i  { background: var(--info-bg);   color: var(--info-txt);   border-color: var(--info-bdr); }
+.chip.g  { background: var(--surface2);  color: var(--text2);      border-color: var(--border-md); }
+
+/* ── PAGINACION ── */
+.pagrow  { display: flex; align-items: center; justify-content: space-between; padding: 9px 0 0; }
+.paginfo { font-size: 11px; color: var(--text3); }
+.pagbtns { display: flex; gap: 4px; }
+.pagbtn  { font-size: 11px; padding: 4px 12px; border: 1px solid var(--border-md); border-radius: var(--r); background: var(--surface); color: var(--text2); cursor: pointer; transition: background .12s, color .12s; }
+.pagbtn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.pagbtn:disabled { opacity: .35; cursor: default; }
+
+/* ── ZONAS ── */
+.zona-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; margin-bottom: 14px; }
+.zcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 9px 10px; text-align: center; cursor: pointer; transition: border-color .12s, background .12s; }
+.zcard:hover { border-color: var(--border-md); }
+.zcard.sel { border-color: var(--info-txt); background: var(--info-bg); }
+.zcode  { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.zn-lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.zn-ok  { font-size: 10px; color: var(--ok-txt); margin-top: 1px; }
+.zbar2  { height: 3px; background: var(--border); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.zfill  { height: 100%; border-radius: 2px; background: var(--info-txt); }
+
+/* ── ZONA DETALLE ── */
+.zdet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rl); padding: 14px; margin-top: 4px; }
+.zdet-title { font-size: 13px; font-weight: 600; margin-bottom: 11px; }
+.zdet-kpis  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 11px; }
+.zdet-kpis .kpi-val { font-size: 18px; }
+.zdet-warn  { margin-bottom: 10px; padding: 8px 12px; background: var(--danger-bg); border: 1px solid var(--danger-bdr); border-radius: var(--r); font-size: 12px; color: var(--danger-txt); }
+
+/* ── EMPTY / INFO ── */
+.empty { text-align: center; padding: 28px; color: var(--text3); font-size: 13px; }
+.no-results { text-align: center; padding: 20px; color: var(--text3); font-size: 12px; }
+
+/* ── ÓRDENES DE TRABAJO ── */
+.ot-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 700px) { .ot-layout { grid-template-columns: 1fr; } }
+.ot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; }
+.ot-card-hdr { padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: space-between; }
+.ot-card-title { font-size: 12px; font-weight: 600; }
+.ot-card-meta  { font-size: 11px; color: var(--text2); }
+.ot-sel-bar { padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ot-sel-count { font-size: 11px; color: var(--text2); margin-left: auto; }
+.ot-tbl-wrap { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+.ot-tbl-wrap table { font-size: 11px; }
+.ot-tbl-wrap thead th { position: sticky; top: 0; z-index: 1; font-size: 9px; padding: 6px 8px; }
+.ot-tbl-wrap tbody td { padding: 5px 8px; }
+.ot-action { padding: 10px 14px; border-top: 1px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ot-action-hint { font-size: 11px; color: var(--text3); }
+.btn-gen { font-size: 12px; padding: 6px 14px; border-radius: var(--r); background: var(--text); color: var(--bg); border: none; cursor: pointer; font-family: var(--font); font-weight: 500; transition: opacity .15s; }
+.btn-gen:disabled { opacity: .35; cursor: default; }
+.btn-gen:not(:disabled):hover { opacity: .85; }
+.btn-outline { font-size: 11px; padding: 5px 11px; border-radius: var(--r); background: transparent; color: var(--text2); border: 1px solid var(--border-md); cursor: pointer; font-family: var(--font); transition: background .12s, color .12s; }
+.btn-outline:hover { background: var(--surface2); color: var(--text); }
+.ot-orden { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; margin-top: 16px; }
+.ot-orden-hdr { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.ot-orden-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.ot-orden-meta  { font-size: 11px; color: var(--text2); }
+.ot-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); align-items: start; }
+.ot-item:last-child { border-bottom: none; }
+.ot-item-cod  { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+.ot-item-desc { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.ot-item-ubic { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.ot-item-ubic strong { font-family: var(--mono); color: var(--text); }
+.ot-item-sistema { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.ot-item-sistema span { color: var(--text); font-weight: 600; }
+.ot-item-sistema .dif { color: var(--warn-txt); }
+.ot-item-right { display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
+.ot-campo-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 3px; }
+.ot-input { width: 100%; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border-md); border-radius: var(--r); background: var(--surface); color: var(--text); font-family: var(--font); }
+.ot-input:focus { outline: none; border-color: var(--text3); }
+.ot-check { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; }
+.ot-check input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: var(--text); }
+.ot-orden-footer { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ot-footer-hint { font-size: 11px; color: var(--text3); }
+.btn-teams { font-size: 12px; padding: 7px 16px; border-radius: var(--r); background: #5059C9; color: #fff; border: none; cursor: pointer; font-family: var(--font); font-weight: 500; display: flex; align-items: center; gap: 7px; transition: opacity .15s; }
+.btn-teams:hover { opacity: .9; }
+.btn-teams svg { width: 14px; height: 14px; flex-shrink: 0; }
+.btn-html { font-size: 12px; padding: 7px 16px; border-radius: var(--r); background: var(--ok-txt); color: #fff; border: none; cursor: pointer; font-family: var(--font); font-weight: 500; display: flex; align-items: center; gap: 7px; transition: opacity .15s; }
+.btn-html:hover { opacity: .9; }
+.ot-footer-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ot-copied { font-size: 11px; color: var(--ok-txt); display: none; }
+.ot-empty { text-align: center; padding: 48px 24px; color: var(--text3); font-size: 13px; }
+.ot-empty p { margin-top: 8px; font-size: 12px; }
+
+/* ── REUBICACIÓN ── */
+.reub-upload { padding: 12px 14px; background: var(--warn-bg); border: 1px solid var(--warn-bdr); border-radius: var(--r); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reub-upload p { font-size: 12px; color: var(--warn-txt); flex: 1; }
+.reub-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.reub-filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.reub-filters select, .reub-filters input[type=text] { font-size: 12px; padding: 6px 10px; border: 1px solid var(--border-md); border-radius: var(--r); background: var(--surface); color: var(--text); font-family: var(--font); }
+.reub-filters input[type=text] { flex: 1; min-width: 180px; }
+.reub-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 8px; overflow: hidden; transition: border-color .12s; }
+.reub-card:hover { border-color: var(--border-md); }
+.reub-card-hdr { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; padding: 10px 14px; align-items: center; cursor: pointer; }
+.reub-tipo { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
+.reub-tipo.t1 { background: var(--danger-bg); color: var(--danger-txt); border-color: var(--danger-bdr); }
+.reub-tipo.t2 { background: var(--ok-bg);     color: var(--ok-txt);     border-color: var(--ok-bdr); }
+.reub-tipo.t3 { background: var(--info-bg);   color: var(--info-txt);   border-color: var(--info-bdr); }
+.reub-resumen { font-size: 12px; color: var(--text); }
+.reub-resumen strong { font-family: var(--mono); font-size: 11px; }
+.reub-impact { font-size: 11px; color: var(--text2); white-space: nowrap; }
+.reub-chevron { font-size: 11px; color: var(--text3); transition: transform .15s; }
+.reub-chevron.open { transform: rotate(90deg); }
+.reub-detail { display: none; border-top: 1px solid var(--border); padding: 12px 14px; background: var(--surface2); }
+.reub-detail.open { display: block; }
+.reub-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+.reub-col-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 4px; }
+.reub-col-cod  { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.reub-col-desc { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.reub-col-meta { font-size: 11px; color: var(--text2); }
+.reub-col-meta span { color: var(--text); font-weight: 500; }
+.reub-arrow { text-align: center; font-size: 18px; color: var(--text3); padding: 8px 0; }
+.reub-ubic-chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: var(--r); border: 1px solid; margin-top: 3px; }
+.reub-ubic-chip.origen  { background: var(--danger-bg); color: var(--danger-txt); border-color: var(--danger-bdr); }
+.reub-ubic-chip.destino { background: var(--ok-bg);     color: var(--ok-txt);     border-color: var(--ok-bdr); }
+.reub-ubic-chip.neutro  { background: var(--surface2);  color: var(--text2);      border-color: var(--border-md); }
+.reub-warn { font-size: 11px; color: var(--warn-txt); background: var(--warn-bg); border: 1px solid var(--warn-bdr); border-radius: var(--r); padding: 5px 9px; margin-top: 6px; }
+.reub-empty { text-align: center; padding: 36px; color: var(--text3); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>Gestión Diaria — Almacén A</h1>
+    <p id="fecha-lbl">—</p>
+  </div>
+  <div class="hdr-r">
+    <label class="btn-sm" for="csv-reload" style="cursor:pointer">⟳ Cambiar CSV</label>
+    <input type="file" id="csv-reload" accept=".csv" onchange="handleFile(this)">
+    <span class="status"><span class="dot" id="sdot"></span><span id="stxt">Sin datos</span></span>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div id="upload-wrap" class="upload-wrap">
+  <div class="upload" id="upload-box">
+    <h2>Panel de Gestión Diaria</h2>
+    <p>Carga el CSV de Almacén A para analizar el estado del stock y detectar incidencias.</p>
+    <label class="btn-up" for="csv-input">Seleccionar CSV</label>
+    <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this)">
+    <small>También puedes arrastrar el fichero aquí · Separador ; · Latin-1</small>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-lbl">Con ubicación</div><div class="kpi-val"    id="k-ubic">—</div><div class="kpi-sub">UbicacionCodigo</div></div>
+    <div class="kpi"><div class="kpi-lbl">Stock ubicado</div><div class="kpi-val ok"  id="k-stock">—</div><div class="kpi-sub">ubicados + exist.</div></div>
+    <div class="kpi"><div class="kpi-lbl">Sin ubicar</div>  <div class="kpi-val d"   id="k-sinubic">—</div><div class="kpi-sub">stock sin posición</div></div>
+    <div class="kpi"><div class="kpi-lbl">Rot. baja</div>   <div class="kpi-val w"   id="k-rot">—</div><div class="kpi-sub">0 ud/mes con ubic.</div></div>
+    <div class="kpi"><div class="kpi-lbl">Obsoletos</div>   <div class="kpi-val d"   id="k-obs">—</div><div class="kpi-sub">obsoleto + stock</div></div>
+    <div class="kpi"><div class="kpi-lbl">Negativos</div>   <div class="kpi-val d"   id="k-neg">—</div><div class="kpi-sub">existencias &lt; 0</div></div>
+    <div class="kpi"><div class="kpi-lbl">Sobrestock err.</div><div class="kpi-val w" id="k-sobre">—</div><div class="kpi-sub">alt &gt; existencias</div></div>
+  </div>
+
+  <div class="main-tabs">
+    <div class="mtab active" data-tab="alertas"    onclick="switchMain('alertas')">Alertas <span class="tbadge" id="cnt-alertas">—</span></div>
+    <div class="mtab"        data-tab="sin-ubic"   onclick="switchMain('sin-ubic')">Sin ubicar <span class="tbadge" id="cnt-sinubic">—</span></div>
+    <div class="mtab"        data-tab="baja-rot"   onclick="switchMain('baja-rot')">Rotación baja <span class="tbadge" id="cnt-rot">—</span></div>
+    <div class="mtab"        data-tab="obsoletos"  onclick="switchMain('obsoletos')">Obsoletos <span class="tbadge" id="cnt-obs">—</span></div>
+    <div class="mtab"        data-tab="desajustes" onclick="switchMain('desajustes')">Desajustes <span class="tbadge" id="cnt-des">—</span></div>
+    <div class="mtab"        data-tab="zonas"      onclick="switchMain('zonas')">Por zona</div>
+    <div class="mtab"        data-tab="ordenes"    onclick="switchMain('ordenes')">Órdenes de trabajo</div>
+    <div class="mtab"        data-tab="reubicacion" onclick="switchMain('reubicacion')">Sugerencias reubicación <span class="tbadge" id="cnt-reubic">—</span></div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="panel active" id="panel-alertas">
+    <div id="alertas-cnt"></div>
+  </div>
+
+  <!-- SIN UBICAR — no tiene filtro de zona, no tienen UbicacionCodigo por definición -->
+  <div class="panel" id="panel-sin-ubic">
+    <div class="panel-inner">
+      <div class="nota">Artículos con existencias positivas pero sin UbicacionCodigo asignada. No es posible filtrar por zona física.</div>
+      <div class="frow">
+        <input type="text" id="s-sin-ubic" placeholder="Buscar código o descripción…" oninput="renderTbl('sin-ubic')">
+        <select id="o-sin-ubic" onchange="renderTbl('sin-ubic')">
+          <option value="exist-desc">Mayor stock primero</option>
+          <option value="exist-asc">Menor stock primero</option>
+          <option value="cod">Por código A–Z</option>
+        </select>
+        <span class="fctr" id="ctr-sin-ubic"></span>
+      </div>
+      <div class="tw"><table id="tbl-sin-ubic">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Almacén</th><th class="num">Exist.</th><th class="num">1 mes</th><th class="num">3 meses</th><th>Catálogo</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pagrow"><span class="paginfo" id="pi-sin-ubic"></span><div class="pagbtns">
+        <button class="pagbtn" id="pv-sin-ubic" onclick="changePg('sin-ubic',-1)">← Anterior</button>
+        <button class="pagbtn" id="pn-sin-ubic" onclick="changePg('sin-ubic',1)">Siguiente →</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- BAJA ROTACION -->
+  <div class="panel" id="panel-baja-rot">
+    <div class="zbar" id="zbar-baja-rot"></div>
+    <div class="panel-inner">
+      <div class="frow">
+        <input type="text" id="s-baja-rot" placeholder="Buscar código, descripción o ubicación…" oninput="renderTbl('baja-rot')">
+        <select id="o-baja-rot" onchange="renderTbl('baja-rot')">
+          <option value="dead">Stock muerto primero</option>
+          <option value="exist-desc">Mayor stock primero</option>
+          <option value="exist-asc">Menor stock primero</option>
+          <option value="cod">Por código A–Z</option>
+        </select>
+        <span class="fctr" id="ctr-baja-rot"></span>
+      </div>
+      <div class="tw"><table id="tbl-baja-rot">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th><th class="num">1 mes</th><th class="num">3 meses</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pagrow"><span class="paginfo" id="pi-baja-rot"></span><div class="pagbtns">
+        <button class="pagbtn" id="pv-baja-rot" onclick="changePg('baja-rot',-1)">← Anterior</button>
+        <button class="pagbtn" id="pn-baja-rot" onclick="changePg('baja-rot',1)">Siguiente →</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- OBSOLETOS -->
+  <div class="panel" id="panel-obsoletos">
+    <div class="zbar" id="zbar-obsoletos"></div>
+    <div class="panel-inner">
+      <div class="frow">
+        <input type="text" id="s-obsoletos" placeholder="Buscar código o descripción…" oninput="renderTbl('obsoletos')">
+        <select id="o-obsoletos" onchange="renderTbl('obsoletos')">
+          <option value="exist-desc">Mayor stock primero</option>
+          <option value="exist-asc">Menor stock primero</option>
+          <option value="cod">Por código A–Z</option>
+        </select>
+        <span class="fctr" id="ctr-obsoletos"></span>
+      </div>
+      <div class="tw"><table id="tbl-obsoletos">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th><th class="num">1 mes</th><th>Catálogo</th><th>Almacén</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pagrow"><span class="paginfo" id="pi-obsoletos"></span><div class="pagbtns">
+        <button class="pagbtn" id="pv-obsoletos" onclick="changePg('obsoletos',-1)">← Anterior</button>
+        <button class="pagbtn" id="pn-obsoletos" onclick="changePg('obsoletos',1)">Siguiente →</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- DESAJUSTES -->
+  <div class="panel" id="panel-desajustes">
+    <div class="zbar" id="zbar-desajustes"></div>
+    <div class="panel-inner">
+      <div class="nota" id="nota-desajustes"></div>
+      <div class="frow">
+        <input type="text" id="s-desajustes" placeholder="Buscar código o descripción…" oninput="renderTbl('desajustes')">
+        <select id="o-desajustes" onchange="renderTbl('desajustes')">
+          <option value="dif-desc">Mayor diferencia primero</option>
+          <option value="tipo">Por tipo (negativos primero)</option>
+          <option value="exist-desc">Mayor stock primero</option>
+          <option value="cod">Por código A–Z</option>
+        </select>
+        <span class="fctr" id="ctr-desajustes"></span>
+      </div>
+      <div class="tw"><table id="tbl-desajustes">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th><th class="num">Alt suma</th><th class="num">Diferencia</th><th>Tipo</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pagrow"><span class="paginfo" id="pi-desajustes"></span><div class="pagbtns">
+        <button class="pagbtn" id="pv-desajustes" onclick="changePg('desajustes',-1)">← Anterior</button>
+        <button class="pagbtn" id="pn-desajustes" onclick="changePg('desajustes',1)">Siguiente →</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ZONAS -->
+  <div class="panel" id="panel-zonas">
+    <div class="zbar" id="zbar-zonas"></div>
+    <div class="panel-inner">
+      <div id="zona-grid-wrap"></div>
+      <div id="zona-det"></div>
+    </div>
+  </div>
+
+  <!-- SUGERENCIAS REUBICACIÓN -->
+  <div class="panel" id="panel-reubicacion">
+    <div class="panel-inner">
+      <div class="reub-upload" id="reub-upload-warn">
+        <p>Carga también el CSV del mapa del almacén para activar las sugerencias de reubicación.</p>
+        <label class="btn-sm" for="mapa-input" style="cursor:pointer">Cargar mapa</label>
+        <input type="file" id="mapa-input" accept=".csv" onchange="handleMapaFile(this)">
+      </div>
+      <div id="reub-content" style="display:none">
+        <div class="reub-kpis" id="reub-kpis"></div>
+        <div class="reub-filters">
+          <input type="text" id="s-reub" placeholder="Buscar código o descripción…" oninput="reubRender()">
+          <select id="o-reub" onchange="reubRender()">
+            <option value="impacto">Mayor impacto primero</option>
+            <option value="tipo">Por tipo</option>
+            <option value="bloque">Por bloque</option>
+          </select>
+          <select id="f-reub-tipo" onchange="reubRender()">
+            <option value="todos">Todos los tipos</option>
+            <option value="t1">Picking ocioso</option>
+            <option value="t2">Alta rotación en sobrestock</option>
+            <option value="t3">Cruce óptimo</option>
+          </select>
+          <select id="f-reub-bloque" onchange="reubRender()">
+            <option value="todos">Todos los bloques</option>
+          </select>
+          <span class="fctr" id="ctr-reub"></span>
+        </div>
+        <div id="reub-sel-bar" style="display:none; padding:8px 0; margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text2)" id="reub-sel-count">0 seleccionadas</span>
+          <button class="btn-outline" onclick="reubSelAll()">Seleccionar todas</button>
+          <button class="btn-outline" onclick="reubSelNone()">Deseleccionar</button>
+          <button class="btn-gen" id="reub-gen-btn" disabled onclick="reubGenerarOT()">Generar OT reubicación →</button>
+        </div>
+        <div id="reub-lista"></div>
+        <div class="pagrow"><span class="paginfo" id="pi-reub"></span><div class="pagbtns">
+          <button class="pagbtn" id="pv-reub" onclick="reubPg(-1)">← Anterior</button>
+          <button class="pagbtn" id="pn-reub" onclick="reubPg(1)">Siguiente →</button>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÓRDENES DE TRABAJO -->
+  <div class="panel" id="panel-ordenes">
+    <div class="panel-inner">
+      <div class="ot-layout">
+        <!-- SELECTOR NEGATIVOS -->
+        <div class="ot-card" id="ot-neg-card">
+          <div class="ot-card-hdr">
+            <div class="ot-card-title">Verificar stock negativo</div>
+            <div class="ot-card-meta" id="ot-neg-meta">—</div>
+          </div>
+          <div class="ot-sel-bar" id="ot-neg-zbar"></div>
+          <div class="ot-tbl-wrap">
+            <table id="ot-tbl-neg">
+              <thead><tr><th style="width:28px"></th><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="ot-action">
+            <span class="ot-action-hint" id="ot-neg-hint">Selecciona artículos</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn-outline" onclick="otSelectAll('neg')">Todos</button>
+              <button class="btn-gen" id="ot-neg-btn" disabled onclick="otGenerar('neg')">Generar orden →</button>
+            </div>
+          </div>
+        </div>
+        <!-- SELECTOR SOBRESTOCK -->
+        <div class="ot-card" id="ot-sob-card">
+          <div class="ot-card-hdr">
+            <div class="ot-card-title">Verificar sobrestock Alt</div>
+            <div class="ot-card-meta" id="ot-sob-meta">—</div>
+          </div>
+          <div class="ot-sel-bar" id="ot-sob-zbar"></div>
+          <div class="ot-tbl-wrap">
+            <table id="ot-tbl-sob">
+              <thead><tr><th style="width:28px"></th><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th><th class="num">Alt suma</th><th class="num">+Dif</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="ot-action">
+            <span class="ot-action-hint" id="ot-sob-hint">Selecciona artículos</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn-outline" onclick="otSelectAll('sob')">Todos</button>
+              <button class="btn-gen" id="ot-sob-btn" disabled onclick="otGenerar('sob')">Generar orden →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ORDEN GENERADA -->
+      <div id="ot-orden-wrap"></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+const PAGE = 30;
+
+const GRUPOS = [
+  { id:'A', label:'Sector A', test: u => /^[Aa]/.test(u) },
+  { id:'B', label:'Sector B', test: u => /^[Bb]/.test(u) },
+  { id:'C', label:'Sector C', test: u => /^[Cc]/.test(u) },
+  { id:'D', label:'Sector D', test: u => /^[Dd]/.test(u) },
+  { id:'E', label:'Sector E', test: u => /^[Ee]/.test(u) },
+  { id:'1x',    label:'Zona 1',  test: u => /^1/.test(u) },
+  { id:'2x',    label:'Zona 2',  test: u => /^2/.test(u) },
+  { id:'3x',    label:'Zona 3',  test: u => /^3/.test(u) },
+  { id:'4x',    label:'Zona 4',  test: u => /^[04]/.test(u) },
+  { id:'Otras', label:'Otras',   test: u => !/^[A-Ea-e0-4]/.test(u) },
+];
+
+const S = { rows: [], sets: {}, pages: {}, zonaFiltro: {} };
+
+/* ── UTILIDADES ── */
+function pn(s) {
+  const n = parseFloat((s || '').toString().replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+
+function fmt(n) {
+  if (n === 0) return '0';
+  if (!Number.isFinite(n)) return '—';
+  if (Math.abs(n) < 1) return n.toFixed(3).replace(/\.?0+$/, '');
+  if (Number.isInteger(n)) return n.toLocaleString('es-ES');
+  return n.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = typeof val === 'number' ? val.toLocaleString('es-ES') : val;
+}
+
+// Extrae suma de cantidades entre paréntesis: "A01 23 1 (45)" → 45
+function extractQty(s) {
+  const matches = (s || '').match(/\((\d+)\)/g) || [];
+  return matches.reduce((sum, m) => sum + parseInt(m.slice(1, -1), 10), 0);
+}
+
+/* ── PARSEO CSV ── */
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, ''); // strip BOM
+  const lines = text.split('\n');
+  if (!lines.length) return [];
+  const headers = lines[0].trim().split(';').map(h => h.trim());
+  const rows = [];
+  let i = 1;
+  while (i < lines.length) {
+    if (!lines[i].trim()) { i++; continue; }
+    const parts = [];
+    let cur = '', inQ = false, j = i, rem = lines[i];
+    outer: while (true) {
+      for (const ch of rem) {
+        if (ch === '"') { inQ = !inQ; continue; }
+        if (ch === ';' && !inQ) { parts.push(cur); cur = ''; continue; }
+        cur += ch;
+      }
+      if (!inQ) { parts.push(cur); break outer; }
+      cur += '\n'; j++;
+      if (j >= lines.length) { parts.push(cur); break outer; }
+      rem = lines[j];
+    }
+    const obj = {};
+    headers.forEach((h, k) => { obj[h] = (parts[k] || '').trim(); });
+    rows.push(obj);
+    i = j + 1;
+  }
+  return rows;
+}
+
+/* ── DRAG & DROP ── */
+(function() {
+  const box = document.getElementById('upload-box');
+  if (!box) return;
+  ['dragenter','dragover'].forEach(ev => box.addEventListener(ev, e => { e.preventDefault(); box.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => box.addEventListener(ev, e => { e.preventDefault(); box.classList.remove('drag'); }));
+  box.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+})();
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (file) loadFile(file);
+  input.value = '';
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => processData(e.target.result);
+  reader.readAsText(file, 'iso-8859-1');
+}
+
+/* ── PROCESO PRINCIPAL ── */
+function processData(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) { alert('El fichero está vacío o no es un CSV válido.'); return; }
+  S.rows = rows;
+
+  // Conjuntos base
+  const conUbic   = rows.filter(r => (r['UbicacionCodigo'] || '').trim());
+  const stockUbic = conUbic.filter(r => pn(r['Existencias']) > 0);
+  const sinUbic   = rows.filter(r => !(r['UbicacionCodigo'] || '').trim() && pn(r['Existencias']) > 0);
+  const bajaRot   = stockUbic.filter(r => pn(r['UDS_1Mes']) === 0);
+  const obsoletos = stockUbic.filter(r => (r['Obsoleto'] || '').toUpperCase().trim() === 'VERDADERO');
+  const negativos = rows.filter(r => pn(r['Existencias']) < 0);
+  const sobrestock = rows.filter(r => {
+    const q = extractQty(r['UbicacionCodigoAlt1']) + extractQty(r['UbicacionCodigoAlt2']);
+    return q > 0 && q > pn(r['Existencias']);
+  });
+
+  // Desajustes: merge de negativos y sobrestock
+  const desMap = {};
+  negativos.forEach(r => {
+    desMap[r['Codigo']] = { ...r, _tipo: 'negativo', _altSum: 0, _dif: Math.abs(pn(r['Existencias'])) };
+  });
+  sobrestock.forEach(r => {
+    const altSum = extractQty(r['UbicacionCodigoAlt1']) + extractQty(r['UbicacionCodigoAlt2']);
+    const dif    = altSum - pn(r['Existencias']);
+    if (desMap[r['Codigo']]) {
+      desMap[r['Codigo']]._tipo   = 'ambos';
+      desMap[r['Codigo']]._altSum = altSum;
+    } else {
+      desMap[r['Codigo']] = { ...r, _tipo: 'sobrestock', _altSum: altSum, _dif: dif };
+    }
+  });
+  const desajustes = Object.values(desMap);
+
+  S.sets = { sinUbic, bajaRot, obsoletos, desajustes, negativos, sobrestock, conUbic, stockUbic };
+  S.pages = { 'sin-ubic': 0, 'baja-rot': 0, 'obsoletos': 0, 'desajustes': 0 };
+  S.zonaFiltro = { 'baja-rot': 'todas', 'obsoletos': 'todas', 'desajustes': 'todas', 'zonas': 'todas' };
+
+  // KPIs
+  setEl('k-ubic',    conUbic.length);
+  setEl('k-stock',   stockUbic.length);
+  setEl('k-sinubic', sinUbic.length);
+  setEl('k-rot',     bajaRot.length);
+  setEl('k-obs',     obsoletos.length);
+  setEl('k-neg',     negativos.length);
+  setEl('k-sobre',   sobrestock.length);
+
+  // Badges de tabs — el badge de alertas se colorea en rojo si hay críticos
+  const criticos = obsoletos.length + negativos.length + sobrestock.length + sinUbic.filter(r => pn(r['Existencias']) >= 5).length;
+  const alertBadge = document.getElementById('cnt-alertas');
+  alertBadge.textContent = criticos;
+  alertBadge.classList.toggle('alert', criticos > 0);
+
+  setEl('cnt-sinubic', sinUbic.length);
+  setEl('cnt-rot',     bajaRot.length);
+  setEl('cnt-obs',     obsoletos.length);
+  setEl('cnt-des',     desajustes.length);
+
+  // Fecha y estado
+  const now = new Date();
+  document.getElementById('fecha-lbl').textContent =
+    'Actualizado: ' + now.toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) +
+    ' ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('sdot').style.background = 'var(--ok-txt)';
+  document.getElementById('stxt').textContent = rows.length.toLocaleString('es-ES') + ' referencias cargadas';
+
+  // Nota desajustes: avisa cuántos negativos no tienen ubicación
+  const negSinUbic = negativos.filter(r => !(r['UbicacionCodigo'] || '').trim()).length;
+  const notaDes = document.getElementById('nota-desajustes');
+  if (negSinUbic > 0) {
+    notaDes.textContent = `${negSinUbic} artículo${negSinUbic > 1 ? 's' : ''} negativo${negSinUbic > 1 ? 's' : ''} sin UbicacionCodigo — no aparecen al filtrar por zona, pero sí en "Todas".`;
+    notaDes.style.display = 'block';
+  } else {
+    notaDes.style.display = 'none';
+  }
+
+  document.getElementById('upload-wrap').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  renderAlertas();
+  buildZonePills('baja-rot',   bajaRot);
+  buildZonePills('obsoletos',  obsoletos);
+  buildZonePills('desajustes', desajustes);
+  renderTbl('sin-ubic');
+  renderTbl('baja-rot');
+  renderTbl('obsoletos');
+  renderTbl('desajustes');
+  renderZonasPanel();
+  otInit();
+  if (MAPA.loaded) calcularSugerencias();
+}
+
+/* ── ALERTAS ── */
+function renderAlertas() {
+  const { sinUbic, bajaRot, obsoletos, negativos, sobrestock } = S.sets;
+  const items = [];
+
+  if (negativos.length)
+    items.push({ cls:'d', ico:'⚠', ttl:`${negativos.length} artículo${negativos.length>1?'s':''} con existencias negativas`,
+      desc:'Stock por debajo de cero — posible error de entrada, salida sin recepción previa o ajuste pendiente.', tab:'desajustes' });
+
+  if (sobrestock.length)
+    items.push({ cls:'d', ico:'⚠', ttl:`${sobrestock.length} artículo${sobrestock.length>1?'s':''} con sobrestock registrado superior a las existencias`,
+      desc:'La suma de unidades anotadas en ubicaciones Alt1/Alt2 supera el total de existencias en el sistema.', tab:'desajustes' });
+
+  if (obsoletos.length)
+    items.push({ cls:'d', ico:'⚠', ttl:`${obsoletos.length} artículo${obsoletos.length>1?'s':''} obsoleto${obsoletos.length>1?'s':''} con stock y ubicación de picking activa`,
+      desc:'Marcados como obsoletos pero con existencias y posición asignada. Requieren baja o liquidación.', tab:'obsoletos' });
+
+  const sinUbicAlto = sinUbic.filter(r => pn(r['Existencias']) >= 5);
+  if (sinUbicAlto.length)
+    items.push({ cls:'d', ico:'⚠', ttl:`${sinUbicAlto.length} referencias con stock ≥5 ud. sin ubicar`,
+      desc:'Sin UbicacionCodigo asignada. Riesgo de pérdida, doble entrada o stock invisible para el equipo.', tab:'sin-ubic' });
+
+  const sinUbicBajo = sinUbic.filter(r => pn(r['Existencias']) > 0 && pn(r['Existencias']) < 5);
+  if (sinUbicBajo.length)
+    items.push({ cls:'w', ico:'○', ttl:`${sinUbicBajo.length} referencias con stock <5 ud. sin ubicar`,
+      desc:'Existencias menores sin posición asignada. Revisar si deben ubicarse o darse de baja.', tab:'sin-ubic' });
+
+  const muerto = bajaRot.filter(r => pn(r['UDS_3Meses']) === 0 && pn(r['Existencias']) > 10);
+  if (muerto.length)
+    items.push({ cls:'w', ico:'○', ttl:`${muerto.length} referencias con stock muerto (>10 ud., 0 salidas en 3 meses)`,
+      desc:'Con ubicación activa y sin ningún movimiento en el trimestre. Candidatos a revisión o reubicación.', tab:'baja-rot' });
+
+  const parado = bajaRot.filter(r => pn(r['UDS_3Meses']) === 0 && pn(r['Existencias']) > 0 && pn(r['Existencias']) <= 10);
+  if (parado.length)
+    items.push({ cls:'w', ico:'○', ttl:`${parado.length} referencias sin salidas en 3 meses con stock ≤10 ud.`,
+      desc:'Movimiento nulo en el trimestre. Posibles restos de pedidos o referencias descontinuadas.', tab:'baja-rot' });
+
+  if (!items.length)
+    items.push({ cls:'ok', ico:'✓', ttl:'Sin incidencias detectadas hoy',
+      desc:'El almacén no presenta desajustes ni alertas críticas en este corte de datos.', tab: null });
+
+  document.getElementById('alertas-cnt').innerHTML = items.map(a => `
+    <div class="alerta ${a.cls}">
+      <div class="alerta-ico">${a.ico}</div>
+      <div class="alerta-body">
+        <div class="alerta-ttl">${esc(a.ttl)}</div>
+        <div class="alerta-desc">${esc(a.desc)}</div>
+      </div>
+      ${a.tab ? `<div class="alerta-act"><button class="btn-sm" onclick="switchMain('${a.tab}')">Ver →</button></div>` : ''}
+    </div>`).join('');
+}
+
+/* ── ZONE PILLS ── */
+function buildZonePills(tab, arr) {
+  const container = document.getElementById('zbar-' + tab);
+  if (!container) return;
+  let html = `<button class="zpill active" id="zp-${tab}-todas" onclick="setZona('${tab}','todas')">Todas <span class="zn">${arr.length}</span></button>`;
+  const letras    = GRUPOS.filter(g => g.id.length === 1);
+  const numericas = GRUPOS.filter(g => g.id.length > 1);
+  let addedLetras = 0, addedNumericas = 0;
+  letras.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) {
+      html += `<button class="zpill" id="zp-${tab}-${g.id}" onclick="setZona('${tab}','${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
+      addedLetras++;
+    }
+  });
+  numericas.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) {
+      if (addedLetras > 0 && addedNumericas === 0) html += `<span class="zpill-sep"></span>`;
+      html += `<button class="zpill" id="zp-${tab}-${g.id}" onclick="setZona('${tab}','${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
+      addedNumericas++;
+    }
+  });
+  container.innerHTML = html;
+}
+
+function setZona(tab, zona) {
+  S.zonaFiltro[tab] = zona;
+  S.pages[tab] = 0;
+  // Limpiar búsqueda al cambiar zona para evitar confusión
+  const search = document.getElementById('s-' + tab);
+  if (search) search.value = '';
+  document.querySelectorAll(`#zbar-${tab} .zpill`).forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`zp-${tab}-${zona}`);
+  if (btn) btn.classList.add('active');
+  renderTbl(tab);
+}
+
+/* ── TABLAS ── */
+function getFiltered(tab) {
+  const keyMap = { 'sin-ubic': 'sinUbic', 'baja-rot': 'bajaRot', 'obsoletos': 'obsoletos', 'desajustes': 'desajustes' };
+  let arr = [...(S.sets[keyMap[tab]] || [])];
+
+  // Filtro zona (solo tabs con UbicacionCodigo)
+  if (tab !== 'sin-ubic') {
+    const zona = S.zonaFiltro[tab] || 'todas';
+    if (zona !== 'todas') {
+      const g = GRUPOS.find(x => x.id === zona);
+      if (g) arr = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim()));
+    }
+  }
+
+  // Búsqueda de texto
+  const q = ((document.getElementById('s-' + tab) || {}).value || '').toLowerCase().trim();
+  if (q) arr = arr.filter(r =>
+    (r['Codigo'] || '').toLowerCase().includes(q) ||
+    (r['Descripcion'] || '').toLowerCase().includes(q) ||
+    (r['UbicacionCodigo'] || '').toLowerCase().includes(q)
+  );
+
+  // Ordenación
+  const o = ((document.getElementById('o-' + tab) || {}).value || 'cod');
+  if (o === 'exist-desc') arr.sort((a, b) => pn(b['Existencias']) - pn(a['Existencias']));
+  else if (o === 'exist-asc')  arr.sort((a, b) => pn(a['Existencias']) - pn(b['Existencias']));
+  else if (o === 'dif-desc')   arr.sort((a, b) => (b._dif || 0) - (a._dif || 0));
+  else if (o === 'tipo')       arr.sort((a, b) => {
+    const ord = { negativo: 0, ambos: 1, sobrestock: 2 };
+    return (ord[a._tipo] ?? 3) - (ord[b._tipo] ?? 3) || (b._dif || 0) - (a._dif || 0);
+  });
+  else if (o === 'dead') {
+    arr.sort((a, b) => {
+      const da = pn(a['UDS_3Meses']) === 0 && pn(a['Existencias']) > 10 ? 0 : 1;
+      const db = pn(b['UDS_3Meses']) === 0 && pn(b['Existencias']) > 10 ? 0 : 1;
+      return da !== db ? da - db : pn(b['Existencias']) - pn(a['Existencias']);
+    });
+  }
+  else arr.sort((a, b) => (a['Codigo'] || '').localeCompare(b['Codigo'] || ''));
+
+  return arr;
+}
+
+function renderTbl(tab) { S.pages[tab] = 0; renderPage(tab); }
+
+function renderPage(tab) {
+  const arr   = getFiltered(tab);
+  const page  = S.pages[tab] || 0;
+  const total = arr.length;
+  const slice = arr.slice(page * PAGE, page * PAGE + PAGE);
+
+  // Contador y paginación
+  const ctr = document.getElementById('ctr-' + tab);
+  if (ctr) ctr.textContent = total.toLocaleString('es-ES') + ' registros';
+  const pi  = document.getElementById('pi-' + tab);
+  const totalPags = Math.max(1, Math.ceil(total / PAGE));
+  if (pi) pi.textContent = total === 0 ? 'Sin resultados' : `Pág. ${page + 1} de ${totalPags} · ${total.toLocaleString('es-ES')} total`;
+  const pv  = document.getElementById('pv-' + tab); if (pv)  pv.disabled  = page === 0;
+  const pn_ = document.getElementById('pn-' + tab); if (pn_) pn_.disabled = (page + 1) * PAGE >= total;
+
+  const tbody = document.querySelector(`#tbl-${tab} tbody`);
+  if (!tbody) return;
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="no-results">Sin resultados${S.zonaFiltro[tab] && S.zonaFiltro[tab] !== 'todas' ? ' en esta zona' : ''}.</td></tr>`;
+    return;
+  }
+
+  let html = '';
+
+  if (tab === 'sin-ubic') {
+    slice.forEach(r => {
+      const ex = pn(r['Existencias']);
+      const cls = ex >= 10 ? 'd' : ex >= 5 ? 'w' : 'g';
+      html += `<tr>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td><span class="chip g">${esc(r['Almacen'] || '—')}</span></td>
+        <td class="num"><span class="chip ${cls}">${fmt(ex)}</span></td>
+        <td class="num">${fmt(pn(r['UDS_1Mes']))}</td>
+        <td class="num">${fmt(pn(r['UDS_3Meses']))}</td>
+        <td><span class="chip g">${esc(r['Catalogo'] || '—')}</span></td>
+      </tr>`;
+    });
+  } else if (tab === 'baja-rot') {
+    slice.forEach(r => {
+      const ex = pn(r['Existencias']), r3 = pn(r['UDS_3Meses']);
+      const muerto = r3 === 0 && ex > 10;
+      html += `<tr>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td class="mc">${esc(r['UbicacionCodigo'])}</td>
+        <td class="num">${fmt(ex)}</td>
+        <td class="num"><span class="chip w">0</span></td>
+        <td class="num">${fmt(r3)}</td>
+        <td><span class="chip ${muerto ? 'd' : 'w'}">${muerto ? 'Stock muerto' : 'Sin salidas'}</span></td>
+      </tr>`;
+    });
+  } else if (tab === 'obsoletos') {
+    slice.forEach(r => {
+      html += `<tr>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td class="mc">${esc(r['UbicacionCodigo'])}</td>
+        <td class="num"><span class="chip d">${fmt(pn(r['Existencias']))}</span></td>
+        <td class="num">${fmt(pn(r['UDS_1Mes']))}</td>
+        <td><span class="chip g">${esc(r['Catalogo'] || '—')}</span></td>
+        <td><span class="chip g">${esc(r['Almacen'] || '—')}</span></td>
+      </tr>`;
+    });
+  } else if (tab === 'desajustes') {
+    slice.forEach(r => {
+      const ex   = pn(r['Existencias']);
+      const tipo = r._tipo || '';
+      const tipoLbl = tipo === 'negativo' ? 'Negativo' : tipo === 'ambos' ? 'Neg. + Sobrestock' : 'Sobrestock Alt';
+      const tipoCls = tipo === 'sobrestock' ? 'w' : 'd';
+      // Diferencia: negativos muestran el valor absoluto con signo negativo, sobrestock muestran el exceso
+      const difStr  = tipo === 'negativo' ? fmt(ex) : '+' + fmt(r._dif || 0);
+      html += `<tr>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td class="mc">${esc(r['UbicacionCodigo'] || '—')}</td>
+        <td class="num ${ex < 0 ? 'neg' : ''}">${fmt(ex)}</td>
+        <td class="num">${r._altSum > 0 ? fmt(r._altSum) : '—'}</td>
+        <td class="num"><span class="chip ${tipoCls}">${difStr}</span></td>
+        <td><span class="chip ${tipoCls}">${tipoLbl}</span></td>
+      </tr>`;
+    });
+  }
+
+  tbody.innerHTML = html;
+}
+
+function changePg(tab, dir) {
+  const arr = getFiltered(tab);
+  const max = Math.max(0, Math.ceil(arr.length / PAGE) - 1);
+  S.pages[tab] = Math.max(0, Math.min(max, (S.pages[tab] || 0) + dir));
+  renderPage(tab);
+}
+
+/* ── PANEL ZONAS ── */
+function renderZonasPanel() {
+  const { conUbic } = S.sets;
+  let html = `<button class="zpill active" id="zp-zonas-todas" onclick="setZonaPanel('todas')">Todas <span class="zn">${conUbic.length}</span></button>`;
+  const letras    = GRUPOS.filter(g => g.id.length === 1);
+  const numericas = GRUPOS.filter(g => g.id.length > 1);
+  let addedLetras = 0, addedNumericas = 0;
+  letras.forEach(g => {
+    const n = conUbic.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) {
+      html += `<button class="zpill" id="zp-zonas-${g.id}" onclick="setZonaPanel('${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
+      addedLetras++;
+    }
+  });
+  numericas.forEach(g => {
+    const n = conUbic.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) {
+      if (addedLetras > 0 && addedNumericas === 0) html += `<span class="zpill-sep"></span>`;
+      html += `<button class="zpill" id="zp-zonas-${g.id}" onclick="setZonaPanel('${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
+      addedNumericas++;
+    }
+  });
+  document.getElementById('zbar-zonas').innerHTML = html;
+  renderZonaGrid('todas');
+}
+
+function setZonaPanel(grupo) {
+  S.zonaFiltro['zonas'] = grupo;
+  // Limpiar detalle al cambiar de grupo
+  document.getElementById('zona-det').innerHTML = '';
+  document.querySelectorAll('#zbar-zonas .zpill').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`zp-zonas-${grupo}`);
+  if (btn) btn.classList.add('active');
+  renderZonaGrid(grupo);
+}
+
+function renderZonaGrid(grupo) {
+  const { conUbic } = S.sets;
+  const g    = GRUPOS.find(x => x.id === grupo);
+  const base = grupo === 'todas' ? conUbic : conUbic.filter(r => g && g.test((r['UbicacionCodigo'] || '').trim()));
+
+  const mapa = {};
+  base.forEach(r => {
+    const u = (r['UbicacionCodigo'] || '').trim();
+    if (!u) return;
+    const z = u.substring(0, 2).toUpperCase();
+    if (!mapa[z]) mapa[z] = { total: 0, conStock: 0, sinRot: 0 };
+    mapa[z].total++;
+    const ex = pn(r['Existencias']);
+    if (ex > 0) {
+      mapa[z].conStock++;
+      if (pn(r['UDS_1Mes']) === 0) mapa[z].sinRot++;
+    }
+  });
+
+  const zonas = Object.entries(mapa).sort((a, b) => b[1].total - a[1].total);
+
+  document.getElementById('zona-grid-wrap').innerHTML =
+    '<div class="zona-grid">' +
+    zonas.map(([z, d]) => {
+      const pct = Math.round(d.conStock / Math.max(1, d.total) * 100);
+      const rotPct = d.conStock > 0 ? Math.round(d.sinRot / d.conStock * 100) : 0;
+      return `<div class="zcard" id="zc-${z}" onclick="showZona('${z}')">
+        <div class="zcode">${esc(z)}</div>
+        <div class="zn-lbl">${d.total} ubic.</div>
+        <div class="zn-ok">${d.conStock} con stock</div>
+        ${d.sinRot > 0 ? `<div style="font-size:10px;color:var(--warn-txt);margin-top:1px">${d.sinRot} sin rot.</div>` : ''}
+        <div class="zbar2"><div class="zfill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('') +
+    '</div>';
+}
+
+function showZona(zona) {
+  document.querySelectorAll('.zcard').forEach(c => c.classList.remove('sel'));
+  const zc = document.getElementById('zc-' + zona);
+  if (zc) zc.classList.add('sel');
+
+  const { conUbic } = S.sets;
+  const refs     = conUbic.filter(r => (r['UbicacionCodigo'] || '').trim().substring(0, 2).toUpperCase() === zona);
+  const conStock = refs.filter(r => pn(r['Existencias']) > 0).sort((a, b) => pn(b['Existencias']) - pn(a['Existencias']));
+  const sinStock = refs.filter(r => pn(r['Existencias']) === 0);
+  const sinRot   = conStock.filter(r => pn(r['UDS_1Mes']) === 0);
+  const muerto   = conStock.filter(r => pn(r['UDS_3Meses']) === 0 && pn(r['Existencias']) > 10);
+
+  const filas = conStock.slice(0, 30).map(r => {
+    const r1 = pn(r['UDS_1Mes']), r3 = pn(r['UDS_3Meses']), ex = pn(r['Existencias']);
+    const cls = r1 > 0 ? 'ok' : r3 === 0 && ex > 10 ? 'd' : 'w';
+    const lbl = r1 > 0 ? 'Activo' : r3 === 0 && ex > 10 ? 'Muerto' : 'Parado';
+    return `<tr>
+      <td class="mc">${esc(r['Codigo'])}</td>
+      <td class="dc" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+      <td class="mc">${esc(r['UbicacionCodigo'])}</td>
+      <td class="num">${fmt(ex)}</td>
+      <td class="num">${fmt(r1)}</td>
+      <td class="num">${fmt(r3)}</td>
+      <td><span class="chip ${cls}">${lbl}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('zona-det').innerHTML = `
+    <div class="zdet">
+      <div class="zdet-title">Zona ${esc(zona)}</div>
+      <div class="zdet-kpis">
+        <div class="kpi"><div class="kpi-lbl">Ubicaciones</div><div class="kpi-val">${refs.length}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Con stock</div><div class="kpi-val ok">${conStock.length}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Vacías</div><div class="kpi-val w">${sinStock.length}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Sin rotación</div><div class="kpi-val d">${sinRot.length}</div></div>
+      </div>
+      ${muerto.length ? `<div class="zdet-warn">⚠ ${muerto.length} referencia${muerto.length > 1 ? 's' : ''} con stock muerto en esta zona (>10 ud. sin salidas en 3 meses)</div>` : ''}
+      <div class="tw"><table>
+        <thead><tr><th>Código</th><th>Descripción</th><th>Ubicación</th><th class="num">Exist.</th><th class="num">1 mes</th><th class="num">3 meses</th><th>Estado</th></tr></thead>
+        <tbody>${conStock.length === 0 ? '<tr><td colspan="7" class="empty">Sin stock en esta zona.</td></tr>' : filas}</tbody>
+      </table></div>
+      ${conStock.length > 30 ? `<div style="font-size:11px;color:var(--text3);margin-top:8px;">Mostrando 30 de ${conStock.length} referencias con stock.</div>` : ''}
+    </div>`;
+
+  document.getElementById('zona-det').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+
+/* ── ÓRDENES DE TRABAJO ── */
+const OT = {
+  neg: { selected: new Set(), filtered: [], all: [], zonaFiltro: 'todas' },
+  sob: { selected: new Set(), filtered: [], all: [], zonaFiltro: 'todas' },
+};
+
+function otInit() {
+  OT.neg.all = S.sets.negativos || [];
+  OT.sob.all = S.sets.sobrestock || [];
+  OT.neg.selected.clear(); OT.sob.selected.clear();
+  otBuildZonePills('neg', OT.neg.all);
+  otBuildZonePills('sob', OT.sob.all);
+  otApplyFiltro('neg');
+  otApplyFiltro('sob');
+  document.getElementById('ot-orden-wrap').innerHTML = '';
+}
+
+function otBuildZonePills(tipo, arr) {
+  const container = document.getElementById('ot-' + tipo + '-zbar');
+  if (!container) return;
+  const letras    = GRUPOS.filter(g => g.id.length === 1);
+  const numericas = GRUPOS.filter(g => g.id.length > 1);
+  const pill = (id, label, n, active) =>
+    `<button class="zpill${active ? ' active' : ''}" style="font-size:11px;padding:3px 10px" id="otzp-${tipo}-${id}" onclick="otSetZona('${tipo}','${id}')">${label} <span class="zn">${n}</span></button>`;
+  let html = pill('todas', 'Todas', arr.length, true);
+  let addedL = 0, addedN = 0;
+  letras.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo']||'').trim())).length;
+    if (n > 0) { html += pill(g.id, g.id, n, false); addedL++; }
+  });
+  numericas.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo']||'').trim())).length;
+    if (n > 0) {
+      if (addedL > 0 && addedN === 0) html += '<span class="zpill-sep"></span>';
+      html += pill(g.id, g.label, n, false);
+      addedN++;
+    }
+  });
+  container.innerHTML = html;
+}
+
+function otSetZona(tipo, zona) {
+  OT[tipo].zonaFiltro = zona;
+  OT[tipo].selected.clear();
+  document.querySelectorAll('#ot-' + tipo + '-zbar .zpill').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('otzp-' + tipo + '-' + zona);
+  if (btn) btn.classList.add('active');
+  otApplyFiltro(tipo);
+}
+
+function otApplyFiltro(tipo) {
+  const zona = OT[tipo].zonaFiltro;
+  let arr = [...(OT[tipo].all || [])];
+  if (zona !== 'todas') {
+    const g = GRUPOS.find(x => x.id === zona);
+    if (g) arr = arr.filter(r => g.test((r['UbicacionCodigo']||'').trim()));
+  }
+  OT[tipo].filtered = arr;
+  OT[tipo].selected.clear();
+  otRenderTbl(tipo);
+  otUpdateMeta(tipo);
+}
+
+function otRenderTbl(tipo) {
+  const arr   = OT[tipo].filtered;
+  const tbody = document.querySelector('#ot-tbl-' + tipo + ' tbody');
+  if (!tbody) return;
+  if (!arr.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="no-results">Sin artículos en esta zona.</td></tr>';
+    otUpdateBtn(tipo);
+    return;
+  }
+  let html = '';
+  if (tipo === 'neg') {
+    arr.forEach((r, i) => {
+      const checked = OT.neg.selected.has(i) ? 'checked' : '';
+      html += `<tr>
+        <td><input type="checkbox" ${checked} onchange="otToggle('neg',${i},this)" style="width:13px;height:13px;cursor:pointer;accent-color:var(--text)"></td>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" style="max-width:160px" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td class="mc">${esc(r['UbicacionCodigo']||'—')}</td>
+        <td class="num neg">${fmt(pn(r['Existencias']))}</td>
+      </tr>`;
+    });
+  } else {
+    arr.forEach((r, i) => {
+      const checked = OT.sob.selected.has(i) ? 'checked' : '';
+      const ex = pn(r['Existencias']);
+      const altSum = extractQty(r['UbicacionCodigoAlt1']) + extractQty(r['UbicacionCodigoAlt2']);
+      const dif = altSum - ex;
+      html += `<tr>
+        <td><input type="checkbox" ${checked} onchange="otToggle('sob',${i},this)" style="width:13px;height:13px;cursor:pointer;accent-color:var(--text)"></td>
+        <td class="mc">${esc(r['Codigo'])}</td>
+        <td class="dc" style="max-width:130px" title="${esc(r['Descripcion'])}">${esc(r['Descripcion'])}</td>
+        <td class="mc">${esc(r['UbicacionCodigo']||'—')}</td>
+        <td class="num">${fmt(ex)}</td>
+        <td class="num">${fmt(altSum)}</td>
+        <td class="num" style="color:var(--warn-txt)">+${fmt(dif)}</td>
+      </tr>`;
+    });
+  }
+  tbody.innerHTML = html;
+  otUpdateBtn(tipo);
+}
+
+function otToggle(tipo, i, el) {
+  if (el.checked) OT[tipo].selected.add(i); else OT[tipo].selected.delete(i);
+  otUpdateBtn(tipo);
+}
+
+function otSelectAll(tipo) {
+  OT[tipo].filtered.forEach((_, i) => OT[tipo].selected.add(i));
+  otRenderTbl(tipo);
+}
+
+function otUpdateBtn(tipo) {
+  const n    = OT[tipo].selected.size;
+  const btn  = document.getElementById('ot-' + tipo + '-btn');
+  const hint = document.getElementById('ot-' + tipo + '-hint');
+  if (btn)  btn.disabled    = n === 0;
+  if (hint) hint.textContent = n === 0 ? 'Selecciona artículos' : n + ' artículo' + (n>1?'s':'') + ' seleccionado' + (n>1?'s':'');
+}
+
+function otUpdateMeta(tipo) {
+  const n  = OT[tipo].filtered.length;
+  const el = document.getElementById('ot-' + tipo + '-meta');
+  if (el) el.textContent = n + ' artículo' + (n!==1?'s':'');
+}
+
+function otGenerar(tipo) {
+  const items = [...OT[tipo].selected].map(i => OT[tipo].filtered[i]);
+  if (!items.length) return;
+  const now    = new Date();
+  const fecha  = now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+  const hora   = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  const titulo = tipo === 'neg' ? 'Verificación de stock negativo' : 'Verificación de sobrestock Alt';
+  const zona   = OT[tipo].zonaFiltro === 'todas' ? 'Todos los sectores' : (GRUPOS.find(g => g.id === OT[tipo].zonaFiltro)?.label || OT[tipo].zonaFiltro);
+
+  const filas = items.map((r, i) => {
+    const ex     = pn(r['Existencias']);
+    const alt1   = (r['UbicacionCodigoAlt1']||'').trim();
+    const alt2   = (r['UbicacionCodigoAlt2']||'').trim();
+    const altSum = extractQty(alt1) + extractQty(alt2);
+    const dif    = altSum - ex;
+    const uid    = `${tipo}-${i}`;
+    const ubicAlt = (alt1 ? `<div class="ot-item-ubic">Alt 1: <strong>${esc(alt1)}</strong></div>` : '')
+                  + (alt2 ? `<div class="ot-item-ubic">Alt 2: <strong>${esc(alt2)}</strong></div>` : '');
+    const sistemaTxt = tipo === 'neg'
+      ? `<div class="ot-item-sistema">Sistema: <span class="dif">${fmt(ex)} ud.</span> (negativo)</div>`
+      : `<div class="ot-item-sistema">Exist. sistema: <span>${fmt(ex)} ud.</span></div>
+         <div class="ot-item-sistema">Alt registrado: <span>${fmt(altSum)} ud.</span> <span class="dif">(+${fmt(dif)} diferencia)</span></div>`;
+    return `<div class="ot-item">
+      <div>
+        <div class="ot-item-cod">${esc(r['Codigo'])}</div>
+        <div class="ot-item-desc">${esc(r['Descripcion'])}</div>
+        <div class="ot-item-ubic">Picking: <strong>${esc(r['UbicacionCodigo']||'—')}</strong></div>
+        ${ubicAlt}${sistemaTxt}
+      </div>
+      <div class="ot-item-right">
+        <div>
+          <div class="ot-campo-lbl">Cantidad contada</div>
+          <input class="ot-input" type="number" min="0" placeholder="0 ud." id="qty-${uid}" style="width:120px">
+        </div>
+        <label class="ot-check">
+          <input type="checkbox" id="ok-${uid}"> Sin diferencias
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ot-orden-wrap').innerHTML = `
+    <div class="ot-orden">
+      <div class="ot-orden-hdr">
+        <div class="ot-orden-title">${titulo}</div>
+        <div class="ot-orden-meta">${fecha} · ${hora} · ${items.length} artículo${items.length>1?'s':''} · ${zona}</div>
+      </div>
+      <div>${filas}</div>
+      <div class="ot-orden-footer">
+        <span class="ot-footer-hint">Genera el enlace, pégalo en Teams y el operario lo abre en el móvil</span>
+        <div class="ot-footer-btns">
+          <button class="btn-html" onclick="otAbrirHTML('${tipo}')">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;flex-shrink:0"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Abrir OT
+          </button>
+          <button class="btn-teams" onclick="otAbrirTeams()">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;flex-shrink:0"><path d="M19.5 4.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5h15A1.5 1.5 0 0021 18V6a1.5 1.5 0 00-1.5-1.5zm-8.25 9.75H9v-5.5h1.5v2h1.5v-2H13.5v5.5H12v-2h-1.5v2h-.75zm6 0h-3v-5.5h3v1.25h-1.5v.75H16v1.25h-1.5v.75H18v1.5z"/></svg>
+            Abrir chat Teams
+          </button>
+          <span class="ot-copied" id="ot-copied">✓ OT abierta en nueva pestaña</span>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('ot-orden-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function otAbrirTeams() {
+  const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+  window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
+}
+
+
+
+/* ── MÓDULO REUBICACIÓN ── */
+const MAPA = { dict: {}, loaded: false };
+const REUB = { sugerencias: [], pag: 0, seleccionadas: new Set() };
+const REUB_PAGE = 20;
+
+function handleMapaFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => procesaMapa(e.target.result);
+  reader.readAsText(file, 'iso-8859-1');
+  input.value = '';
+}
+
+function parseCSVMapa(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split('\n');
+  const headers = lines[0].trim().split(';').map(h => h.trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = line.split(';');
+    const obj = {};
+    headers.forEach((h, k) => { obj[h] = (parts[k] || '').trim(); });
+    if (obj['Zona'] === 'A' && obj['Ubicación']) rows.push(obj);
+  }
+  return rows;
+}
+
+function clasificarUbic(bloque, columna, nivel) {
+  const b = parseInt(bloque), c = parseInt(columna), n = parseInt(nivel);
+  let tipo, tamanyo, peso;
+  if (b >= 1 && b <= 5) {
+    if (b === 5 && c > 20) tipo = n === 0 ? 'picking' : 'sobrestock';
+    else tipo = (n === 0 || n === 1) ? 'picking' : 'sobrestock';
+    tamanyo = 'pequeño'; peso = (n === 0 || n === 1) ? 'pesado' : 'ligero';
+  } else if (b >= 6 && b <= 16) {
+    tipo = n === 0 ? 'picking' : 'sobrestock';
+    tamanyo = 'grande'; peso = 'n/a';
+  } else {
+    tipo = 'otro'; tamanyo = 'otro'; peso = 'n/a';
+  }
+  return { tipo, tamanyo, peso };
+}
+
+function normUbic(u) { return (u || '').replace(/\s/g, '').trim(); }
+
+function procesaMapa(text) {
+  const filas = parseCSVMapa(text);
+  MAPA.dict = {};
+  filas.forEach(r => {
+    const key = normUbic(r['Ubicación']);
+    const cls = clasificarUbic(r['Bloque'], r['Columna'], r['Nivel']);
+    MAPA.dict[key] = {
+      ubic: key, ubic_fmt: r['Ubicación'],
+      bloque: r['Bloque'], columna: r['Columna'], nivel: r['Nivel'],
+      alto: parseInt(r['Alto ub. (cm)']) || 0,
+      fondo: parseInt(r['Fondo ub. (cm)']) || 0,
+      comentario: r['Comentario'] || '',
+      tipo: cls.tipo, tamanyo: cls.tamanyo, peso: cls.peso,
+      ocupada: false
+    };
+  });
+  MAPA.loaded = true;
+  document.getElementById('reub-upload-warn').style.display = 'none';
+  document.getElementById('reub-content').style.display = 'block';
+  if (S.sets && S.sets.conUbic) calcularSugerencias();
+}
+
+function rotClase(rot1, rot3) {
+  if (rot1 > 20) return 'alta';
+  if (rot1 > 5)  return 'media';
+  if (rot1 > 0)  return 'baja';
+  if (rot3 > 0)  return 'muy_baja';
+  return 'nula';
+}
+
+function calcularSugerencias() {
+  if (!MAPA.loaded || !S.rows || !S.rows.length) return;
+
+  Object.values(MAPA.dict).forEach(m => { m.ocupada = false; m.producto = null; });
+
+  const zonaA = S.rows.filter(r => normUbic(r['UbicacionCodigo']).startsWith('A') && pn(r['Existencias']) > 0);
+
+  const productos = zonaA.map(r => {
+    const ubic = normUbic(r['UbicacionCodigo']);
+    const m    = MAPA.dict[ubic];
+    const rot1 = pn(r['UDS_1Mes']), rot3 = pn(r['UDS_3Meses']);
+    if (m) { m.ocupada = true; m.producto = r['Codigo']; }
+    return {
+      codigo: r['Codigo'], desc: r['Descripcion'],
+      ubic, rot1, rot3, exist: pn(r['Existencias']),
+      rot_clase: rotClase(rot1, rot3),
+      mapa: m || null,
+      tipo_ubic:  m ? m.tipo    : 'desconocido',
+      tamanyo:    m ? m.tamanyo : 'desconocido',
+      bloque:     m ? m.bloque  : '',
+      nivel:      m ? m.nivel   : '',
+      alto:       m ? m.alto    : 0,
+      comentario: m ? m.comentario : '',
+    };
+  });
+
+  const pickingLibres  = Object.values(MAPA.dict).filter(m => m.tipo === 'picking'    && !m.ocupada);
+  const sobreLibres    = Object.values(MAPA.dict).filter(m => m.tipo === 'sobrestock' && !m.ocupada);
+  const pickMuertos    = productos.filter(p => p.tipo_ubic === 'picking'    && (p.rot_clase === 'nula' || p.rot_clase === 'muy_baja'));
+  const sobreAltaMedia = productos.filter(p => p.tipo_ubic === 'sobrestock' && (p.rot_clase === 'alta' || p.rot_clase === 'media'));
+
+  const sugerencias = [];
+  const procesados  = new Set();
+
+  pickMuertos.forEach(p => {
+    if (procesados.has(p.ubic)) return;
+    const destino = sobreLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo)
+                 || sobreLibres.find(m => m.tamanyo === p.tamanyo);
+    sugerencias.push({ tipo:'t1', tipo_label:'Picking ocioso', producto:p, desde:p.ubic, hasta:destino?destino.ubic:null, impacto:p.exist, bloque:p.bloque });
+    procesados.add(p.ubic);
+    if (destino) { destino.ocupada = true; sobreLibres.splice(sobreLibres.indexOf(destino),1); }
+  });
+
+  sobreAltaMedia.forEach(p => {
+    if (procesados.has(p.ubic)) return;
+    const destino = pickingLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo)
+                 || pickingLibres.find(m => m.tamanyo === p.tamanyo);
+    sugerencias.push({ tipo:'t2', tipo_label:'Alta rotación en sobrestock', producto:p, desde:p.ubic, hasta:destino?destino.ubic:null, impacto:p.rot1, bloque:p.bloque });
+    procesados.add(p.ubic);
+    if (destino) { destino.ocupada = true; pickingLibres.splice(pickingLibres.indexOf(destino),1); }
+  });
+
+  const t1SinDestino = sugerencias.filter(s => s.tipo === 't1' && !s.hasta);
+  const t2SinDestino = sugerencias.filter(s => s.tipo === 't2' && !s.hasta);
+  t1SinDestino.forEach(s1 => {
+    const par = t2SinDestino.find(s2 => s2.bloque === s1.bloque || s2.producto.tamanyo === s1.producto.tamanyo);
+    if (!par) return;
+    s1.tipo = 't3'; s1.tipo_label = 'Cruce óptimo';
+    s1.intercambio_con = par.producto; s1.intercambio_desde = par.desde;
+    s1.hasta = par.desde; par.hasta = s1.desde;
+    par.tipo = 't3'; par.tipo_label = 'Cruce óptimo';
+    par.intercambio_con = s1.producto; par.intercambio_desde = s1.desde;
+    s1.impacto = s1.producto.exist + (par.producto.rot1 * 3);
+    par.impacto = s1.impacto;
+    t2SinDestino.splice(t2SinDestino.indexOf(par), 1);
+  });
+
+  const vistos = new Set();
+  const dedup  = sugerencias.filter(s => {
+    if (s.tipo !== 't3') return true;
+    const key = [s.desde, s.hasta].sort().join('|');
+    if (vistos.has(key)) return false;
+    vistos.add(key); return true;
+  });
+
+  REUB.sugerencias = dedup.sort((a,b) => b.impacto - a.impacto);
+  REUB.pag = 0;
+  REUB.seleccionadas.clear();
+
+  const t1 = dedup.filter(s => s.tipo==='t1').length;
+  const t2 = dedup.filter(s => s.tipo==='t2').length;
+  const t3 = dedup.filter(s => s.tipo==='t3').length;
+  const pickLibN = pickingLibres.length;
+
+  document.getElementById('reub-kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-lbl">Total sugerencias</div><div class="kpi-val w">${dedup.length}</div><div class="kpi-sub">movimientos propuestos</div></div>
+    <div class="kpi"><div class="kpi-lbl">Picking ocioso</div><div class="kpi-val d">${t1}</div><div class="kpi-sub">liberar posiciones</div></div>
+    <div class="kpi"><div class="kpi-lbl">Alta rot. en sobre.</div><div class="kpi-val ok">${t2}</div><div class="kpi-sub">bajar a picking</div></div>
+    <div class="kpi"><div class="kpi-lbl">Cruces óptimos</div><div class="kpi-val" style="color:var(--info-txt)">${t3}</div><div class="kpi-sub">intercambio directo</div></div>
+    <div class="kpi"><div class="kpi-lbl">Picking libres</div><div class="kpi-val">${pickLibN}</div><div class="kpi-sub">disponibles ahora</div></div>`;
+
+  setEl('cnt-reubic', dedup.length);
+  const badge = document.getElementById('cnt-reubic');
+  if (badge && dedup.length > 0) badge.classList.add('alert');
+
+  const bloques = [...new Set(dedup.map(s => s.bloque).filter(Boolean))].sort();
+  const sel = document.getElementById('f-reub-bloque');
+  if (sel) sel.innerHTML = '<option value="todos">Todos los bloques</option>' +
+    bloques.map(b => `<option value="${b}">Bloque A${b}</option>`).join('');
+
+  document.getElementById('reub-sel-bar').style.display = 'flex';
+  reubRender();
+}
+
+function reubGetFiltered() {
+  let arr = [...REUB.sugerencias];
+  const q      = (document.getElementById('s-reub')?.value || '').toLowerCase().trim();
+  const tipo   = document.getElementById('f-reub-tipo')?.value   || 'todos';
+  const bloque = document.getElementById('f-reub-bloque')?.value || 'todos';
+  const orden  = document.getElementById('o-reub')?.value        || 'impacto';
+  if (q) arr = arr.filter(s =>
+    s.producto.codigo.toLowerCase().includes(q) ||
+    s.producto.desc.toLowerCase().includes(q) ||
+    (s.desde||'').toLowerCase().includes(q)
+  );
+  if (tipo   !== 'todos') arr = arr.filter(s => s.tipo   === tipo);
+  if (bloque !== 'todos') arr = arr.filter(s => s.bloque === bloque);
+  if      (orden === 'tipo')   arr.sort((a,b) => a.tipo.localeCompare(b.tipo) || b.impacto-a.impacto);
+  else if (orden === 'bloque') arr.sort((a,b) => (a.bloque||'').localeCompare(b.bloque||'') || b.impacto-a.impacto);
+  else arr.sort((a,b) => b.impacto - a.impacto);
+  return arr;
+}
+
+function reubRender() { REUB.pag = 0; reubRenderPage(); }
+
+function reubRenderPage() {
+  const arr   = reubGetFiltered();
+  const total = arr.length;
+  const page  = REUB.pag;
+  const slice = arr.slice(page * REUB_PAGE, page * REUB_PAGE + REUB_PAGE);
+
+  const ctr = document.getElementById('ctr-reub');
+  if (ctr) ctr.textContent = total.toLocaleString('es-ES') + ' sugerencias';
+  const pi = document.getElementById('pi-reub');
+  if (pi) pi.textContent = total === 0 ? 'Sin resultados' : `Pág. ${page+1} de ${Math.max(1,Math.ceil(total/REUB_PAGE))} · ${total} total`;
+  const pv  = document.getElementById('pv-reub');  if(pv)  pv.disabled  = page === 0;
+  const pn_ = document.getElementById('pn-reub');  if(pn_) pn_.disabled = (page+1)*REUB_PAGE >= total;
+
+  const lista = document.getElementById('reub-lista');
+  if (!lista) return;
+
+  if (!slice.length) { lista.innerHTML = '<div class="reub-empty">Sin sugerencias para estos filtros.</div>'; return; }
+
+  lista.innerHTML = slice.map((s, idx) => {
+    const globalIdx = page * REUB_PAGE + idx;
+    const p         = s.producto;
+    const rotBadge  = (p.rot_clase === 'alta' || p.rot_clase === 'media') ? 'ok' : p.rot_clase === 'baja' ? 'w' : 'd';
+    const rotLbl    = { alta:'Alta', media:'Media', baja:'Baja', muy_baja:'Muy baja', nula:'Nula' }[p.rot_clase] || '—';
+    const isChecked = REUB.seleccionadas.has(globalIdx);
+
+    let resumen = '';
+    if (s.tipo === 't1')
+      resumen = `<strong>${p.codigo}</strong> en picking <strong>${s.desde}</strong> sin rotación → mover a sobrestock${s.hasta ? ' <strong>'+s.hasta+'</strong>' : ''}`;
+    else if (s.tipo === 't2')
+      resumen = `<strong>${p.codigo}</strong> con ${fmt(p.rot1)} ud/mes en sobrestock <strong>${s.desde}</strong> → bajar a picking${s.hasta ? ' <strong>'+s.hasta+'</strong>' : ''}`;
+    else
+      resumen = `Intercambio: <strong>${p.codigo}</strong> (rot.nula) ↔ <strong>${s.intercambio_con?.codigo}</strong> (${fmt(s.intercambio_con?.rot1)} ud/mes)`;
+
+    let detalle = '';
+    if (s.tipo === 't1') {
+      detalle = `<div class="reub-row">
+        <div>
+          <div class="reub-col-lbl">Producto a mover (sin rotación en picking)</div>
+          <div class="reub-col-cod">${esc(p.codigo)}</div>
+          <div class="reub-col-desc">${esc(p.desc)}</div>
+          <div class="reub-col-meta">Rot. 1 mes: <span>0 ud.</span> · 3 meses: <span>${fmt(p.rot3)} ud.</span></div>
+          <div class="reub-col-meta">Stock: <span>${fmt(p.exist)} ud.</span></div>
+          ${p.comentario ? `<div class="reub-warn">⚠ ${esc(p.comentario)}</div>` : ''}
+          <div style="margin-top:6px"><span class="reub-ubic-chip origen">Origen: ${s.desde}</span></div>
+          ${s.hasta ? `<div style="margin-top:4px"><span class="reub-ubic-chip destino">Destino sobrestock: ${s.hasta}</span></div>` : '<div style="margin-top:4px;font-size:11px;color:var(--text3)">Sin sobrestock libre en bloque</div>'}
+        </div>
+        <div>
+          <div class="reub-col-lbl">Posición que se libera</div>
+          <div class="reub-col-meta" style="margin-top:4px">Al mover este producto, <strong style="font-family:var(--mono)">${s.desde}</strong> queda disponible para alta rotación.</div>
+        </div>
+      </div>`;
+    } else if (s.tipo === 't2') {
+      detalle = `<div class="reub-row">
+        <div>
+          <div class="reub-col-lbl">Producto a bajar a picking</div>
+          <div class="reub-col-cod">${esc(p.codigo)}</div>
+          <div class="reub-col-desc">${esc(p.desc)}</div>
+          <div class="reub-col-meta">Rot. 1 mes: <span>${fmt(p.rot1)} ud.</span> · 3 meses: <span>${fmt(p.rot3)} ud.</span></div>
+          <div class="reub-col-meta">Stock: <span>${fmt(p.exist)} ud.</span></div>
+          <div style="margin-top:6px"><span class="reub-ubic-chip origen">Origen sobrestock: ${s.desde}</span></div>
+          ${s.hasta ? `<div style="margin-top:4px"><span class="reub-ubic-chip destino">Destino picking: ${s.hasta}</span></div>` : '<div style="margin-top:4px;font-size:11px;color:var(--text3)">Sin picking libre — combinar con picking ocioso</div>'}
+        </div>
+        <div>
+          <div class="reub-col-lbl">Beneficio esperado</div>
+          <div class="reub-col-meta" style="margin-top:4px">Reducir desplazamientos: <strong>${fmt(p.rot1)} salidas/mes</strong> · 3 meses: <strong>${fmt(p.rot3)} ud.</strong></div>
+        </div>
+      </div>`;
+    } else {
+      const pc = s.intercambio_con;
+      detalle = `<div class="reub-row">
+        <div>
+          <div class="reub-col-lbl">Sale del picking (sin rotación)</div>
+          <div class="reub-col-cod">${esc(p.codigo)}</div>
+          <div class="reub-col-desc">${esc(p.desc)}</div>
+          <div class="reub-col-meta">Stock: <span>${fmt(p.exist)} ud.</span> · Rot.: <span>0 ud/mes</span></div>
+          <div style="margin-top:6px"><span class="reub-ubic-chip origen">Picking: ${s.desde}</span></div>
+          <div style="margin-top:4px"><span class="reub-ubic-chip destino">→ Sobrestock: ${s.hasta||'—'}</span></div>
+        </div>
+        <div>
+          <div class="reub-col-lbl">Entra al picking (alta rotación)</div>
+          <div class="reub-col-cod">${esc(pc?.codigo||'—')}</div>
+          <div class="reub-col-desc">${esc(pc?.desc||'—')}</div>
+          <div class="reub-col-meta">Stock: <span>${fmt(pc?.exist||0)} ud.</span> · Rot.: <span>${fmt(pc?.rot1||0)} ud/mes</span></div>
+          <div style="margin-top:6px"><span class="reub-ubic-chip origen">Sobrestock: ${s.intercambio_desde||'—'}</span></div>
+          <div style="margin-top:4px"><span class="reub-ubic-chip destino">→ Picking: ${s.desde}</span></div>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="reub-card">
+      <div class="reub-card-hdr" style="grid-template-columns:auto auto 1fr auto auto">
+        <input type="checkbox" ${isChecked?'checked':''} onclick="reubToggleSel(${globalIdx},event)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
+        <span class="reub-tipo ${s.tipo}">${s.tipo_label}</span>
+        <span class="reub-resumen" onclick="reubToggle(${globalIdx})" style="cursor:pointer">${resumen}</span>
+        <span class="reub-impact" onclick="reubToggle(${globalIdx})" style="cursor:pointer"><span class="chip ${rotBadge}">${rotLbl}</span> · Bloque A${s.bloque}</span>
+        <span class="reub-chevron" id="chev-${globalIdx}" onclick="reubToggle(${globalIdx})" style="cursor:pointer">▶</span>
+      </div>
+      <div class="reub-detail" id="det-${globalIdx}">${detalle}</div>
+    </div>`;
+  }).join('');
+}
+
+function reubToggle(idx) {
+  const det  = document.getElementById('det-' + idx);
+  const chev = document.getElementById('chev-' + idx);
+  if (!det) return;
+  const open = det.classList.toggle('open');
+  if (chev) chev.textContent = open ? '▼' : '▶';
+}
+
+function reubToggleSel(idx, e) {
+  e.stopPropagation();
+  if (REUB.seleccionadas.has(idx)) REUB.seleccionadas.delete(idx);
+  else REUB.seleccionadas.add(idx);
+  reubUpdateSelBar();
+}
+
+function reubSelAll() {
+  const arr = reubGetFiltered();
+  arr.forEach((_, i) => REUB.seleccionadas.add(REUB.pag * REUB_PAGE + i));
+  reubRenderPage(); reubUpdateSelBar();
+}
+
+function reubSelNone() {
+  REUB.seleccionadas.clear();
+  reubRenderPage(); reubUpdateSelBar();
+}
+
+function reubUpdateSelBar() {
+  const n   = REUB.seleccionadas.size;
+  const btn = document.getElementById('reub-gen-btn');
+  const cnt = document.getElementById('reub-sel-count');
+  if (btn) btn.disabled = n === 0;
+  if (cnt) cnt.textContent = n === 0 ? '0 seleccionadas' : n + ' sugerencia' + (n>1?'s':'') + ' seleccionada' + (n>1?'s':'');
+}
+
+function reubPg(dir) {
+  const arr = reubGetFiltered();
+  const max = Math.max(0, Math.ceil(arr.length / REUB_PAGE) - 1);
+  REUB.pag = Math.max(0, Math.min(max, REUB.pag + dir));
+  reubRenderPage();
+}
+
+
+/* ── URL GENERATOR ── */
+const OT_BASE_URL = 'https://ivanpeese.github.io/ot-s-/ot.html';
+
+async function comprimirDatos(obj) {
+  const json = JSON.stringify(obj);
+  const enc  = new TextEncoder().encode(json);
+  const cs   = new CompressionStream('deflate-raw');
+  const writer = cs.writable.getWriter();
+  writer.write(enc); writer.close();
+  const chunks = [];
+  const reader = cs.readable.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out   = new Uint8Array(total);
+  let off = 0;
+  chunks.forEach(c => { out.set(c, off); off += c.length; });
+  // base64url (URL-safe)
+  let b64 = btoa(String.fromCharCode(...out));
+  return b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generarUrlOT(data) {
+  const d   = await comprimirDatos(data);
+  return OT_BASE_URL + '?d=' + d;
+}
+
+function copiarYAbrirTeams(url, titulo) {
+  navigator.clipboard.writeText(url).catch(() => {});
+  const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+  // Small delay so clipboard write completes
+  setTimeout(() => {
+    window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
+  }, 400);
+}
+
+/* ── HTML OT GENERATOR ── */
+
+
+function otAbrirHTML(tipo) {
+  const items = [...OT[tipo].selected].map(i => OT[tipo].filtered[i]);
+  if (!items.length) return;
+
+  const now    = new Date();
+  const fecha  = now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+  const hora   = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  const titulo = tipo === 'neg' ? 'Verificación stock negativo' : 'Verificación sobrestock Alt';
+  const zona   = OT[tipo].zonaFiltro === 'todas' ? 'Todos los sectores' : (GRUPOS.find(g => g.id === OT[tipo].zonaFiltro)?.label || OT[tipo].zonaFiltro);
+  const meta   = fecha + ' · ' + hora + ' · ' + items.length + ' artículo' + (items.length>1?'s':'') + ' · ' + zona;
+
+  const otItems = items.map(r => {
+    const ex     = pn(r['Existencias']);
+    const alt1   = (r['UbicacionCodigoAlt1']||'').trim();
+    const alt2   = (r['UbicacionCodigoAlt2']||'').trim();
+    const altSum = extractQty(alt1) + extractQty(alt2);
+    return {
+      tipo:        'verificar',
+      cod:         r['Codigo'],
+      desc:        r['Descripcion'],
+      ubic_picking: r['UbicacionCodigo'] || '',
+      ubic_alt1:   alt1,
+      ubic_alt2:   alt2,
+      sistema:     ex,
+      alt_sum:     altSum > 0 ? altSum : null,
+      dif:         altSum > 0 ? altSum - ex : null,
+    };
+  });
+
+  const data = { titulo, meta, tipo: 'verificar', items: otItems };
+
+  const btn = document.getElementById('ot-' + tipo + '-btn');
+  const origTxt = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Generando enlace…'; btn.disabled = true; }
+
+  generarUrlOT(data).then(url => {
+    navigator.clipboard.writeText(url).catch(() => {});
+    if (btn) { btn.textContent = '✓ Enlace copiado — pega en Teams'; }
+    const copied = document.getElementById('ot-copied');
+    if (copied) { copied.style.display = 'inline'; setTimeout(() => { copied.style.display = 'none'; }, 5000); }
+    // Open Teams
+    setTimeout(() => {
+      const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+      window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
+      setTimeout(() => { if (btn) { btn.textContent = origTxt; btn.disabled = false; } }, 3000);
+    }, 500);
+  });
+}
+
+function reubGenerarOT() {
+  const indices = [...REUB.seleccionadas].sort((a,b) => a-b);
+  const items   = indices.map(i => REUB.sugerencias[i]).filter(Boolean);
+  if (!items.length) return;
+
+  const now    = new Date();
+  const fecha  = now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+  const hora   = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  const titulo = 'Orden de reubicación';
+  const meta   = fecha + ' · ' + hora + ' · ' + items.length + ' movimiento' + (items.length>1?'s':'');
+
+  // Ordenar por bloque para minimizar desplazamientos
+  const ordenados = [...items].sort((a,b) => {
+    if (a.bloque !== b.bloque) return (a.bloque||'').localeCompare(b.bloque||'');
+    const ord = { t3:0, t1:1, t2:2 };
+    return (ord[a.tipo]||9) - (ord[b.tipo]||9);
+  });
+
+  const otItems = ordenados.map(s => {
+    const p  = s.producto;
+    const pc = s.intercambio_con;
+    if (s.tipo === 't3') {
+      return {
+        tipo:   'cruce',
+        cod1:   p.codigo,   desc1:  p.desc,   exist1: p.exist,  rot1_1: p.rot1,
+        cod2:   pc?.codigo, desc2:  pc?.desc,  exist2: pc?.exist, rot2:  pc?.rot1,
+        desde1: s.desde,    hasta1: s.hasta,
+        desde2: s.intercambio_desde, hasta2: s.desde,
+        bloque: s.bloque,
+      };
+    } else {
+      const mOr  = MAPA.dict[s.desde] || {};
+      const mDes = s.hasta ? (MAPA.dict[s.hasta] || {}) : {};
+      return {
+        tipo:       s.tipo === 't1' ? 'picking_ocioso' : 'alta_rot_sobrestock',
+        cod:        p.codigo,
+        desc:       p.desc,
+        exist:      p.exist,
+        rot1:       p.rot1,
+        rot3:       p.rot3,
+        desde:      s.desde,
+        hasta:      s.hasta || null,
+        tipo_desde: mOr.tipo  || '',
+        tipo_hasta: mDes.tipo || '',
+        bloque:     s.bloque,
+      };
+    }
+  });
+
+  const data = { titulo, meta, tipo: 'reubicacion', items: otItems };
+
+  const btn = document.getElementById('reub-gen-btn');
+  const origTxt = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Generando enlace…'; btn.disabled = true; }
+
+  generarUrlOT(data).then(url => {
+    navigator.clipboard.writeText(url).catch(() => {});
+    if (btn) { btn.textContent = '✓ Enlace copiado — pega en Teams'; }
+    setTimeout(() => {
+      const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+      window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
+      setTimeout(() => { if (btn) { btn.textContent = origTxt; btn.disabled = false; } }, 3000);
+    }, 500);
+  });
+}
+
+
+/* ── TABS PRINCIPALES ── */
+function switchMain(tab) {
+  document.querySelectorAll('.mtab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+}
+</script>
+</body>
+</html>
