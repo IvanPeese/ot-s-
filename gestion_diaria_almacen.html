@@ -738,13 +738,22 @@ async function autoLoad() {
     const text = new TextDecoder('iso-8859-1').decode(buf);
     if (text.length < 10) throw new Error('CSV vacío');
     clearSpinnerTimeout();
-    processData(text);
+    try {
+      processData(text);
+    } catch(pe) {
+      console.error('processData error:', pe);
+      document.getElementById('upload-spinner').style.display = 'none';
+      document.getElementById('upload-msg').textContent = 'Error procesando CSV: ' + pe.message;
+      document.getElementById('upload-manual').style.display = 'block';
+      return;
+    }
     autoLoadMapa();
     return;
   } catch(e) {
     clearSpinnerTimeout();
+    console.error('AutoLoad error:', e);
     document.getElementById('upload-spinner').style.display = 'none';
-    document.getElementById('upload-msg').textContent = 'No se encontró Almacen_A.csv en el repositorio. Cárgalo manualmente o súbelo al repo.';
+    document.getElementById('upload-msg').textContent = 'Error al cargar: ' + e.message + '. Cárgalo manualmente.';
     document.getElementById('upload-manual').style.display = 'block';
   }
 }
