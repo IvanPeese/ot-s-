@@ -832,6 +832,7 @@ function computeSets(rows) {
   S.sets = { sinUbic, bajaRot, obsoletos, desajustes, negativos, sobrestock, conUbic, stockUbic };
   S.pages = { 'sin-ubic': 0, 'baja-rot': 0, 'obsoletos': 0, 'desajustes': 0 };
   S._cache = {};
+  S.sortState = S.sortState || {};
   S.zonaFiltro = { 'baja-rot': 'todas', 'obsoletos': 'todas', 'desajustes': 'todas', 'zonas': 'todas' };
 }
 
@@ -1074,7 +1075,7 @@ function getFiltered(tab, useCache = false) {
     });
   }
   // Column sort takes priority if set
-  const ss = S.sortState[tab];
+  const ss = S.sortState && S.sortState[tab];
   if (ss) {
     arr.sort((a, b) => {
       let va = a[ss.col] || '', vb = b[ss.col] || '';
