@@ -1807,20 +1807,38 @@ function reubGenerarOT() {
     return (ord[a.tipo]||9) - (ord[b.tipo]||9);
   });
 
-  // Ubicaciones ya cubiertas por algún cruce T3 seleccionado — evitar duplicados
+  // Todas las ubicaciones implicadas en T3 — ningún T1/T2 puede tocar estas ubicaciones
   const ubicsCruce = new Set();
   ordenados.forEach(s => {
     if (s.tipo === 't3') {
-      ubicsCruce.add(s.desde);
-      ubicsCruce.add(s.hasta);
-      ubicsCruce.add(s.intercambio_desde);
+      ubicsCruce.add(s.desde);           // picking del muerto
+      ubicsCruce.add(s.hasta);           // sobrestock de la alta rot (destino del muerto)
+      ubicsCruce.add(s.intercambio_desde); // sobrestock de la alta rot (origen)
+      // intercambio_con es el objeto producto, su ubic también está cubierta
+      if (s.intercambio_con?.ubic) ubicsCruce.add(s.intercambio_con.ubic);
     }
   });
 
   const otItems = ordenados
     .filter(s => {
-      // Eliminar T1/T2 cuya ubicación origen ya está cubierta por un cruce seleccionado
-      if (s.tipo !== 't3' && ubicsCruce.has(s.desde)) return false;
+      if (s.tipo === 't3') return true;
+      // Excluir T1/T2 si CUALQUIERA de sus ubicaciones (origen o destino) ya está en un cruce
+      if (ubicsCruce.has(s.desde)) return false;
+      if (s.hasta && ubicsCruce.has(s.hasta)) return false;
+      // Excluir T2 si el producto participante ya es intercambio_con de algún T3
+      if (s.tipo === 't2') {
+        const yaEnCruce = ordenados.some(t3 =>
+          t3.tipo === 't3' && t3.intercambio_con?.ubic === s.desde
+        );
+        if (yaEnCruce) return false;
+      }
+      // Excluir T1 si el picking muerto ya participó en algún T3
+      if (s.tipo === 't1') {
+        const yaEnCruce = ordenados.some(t3 =>
+          t3.tipo === 't3' && t3.desde === s.desde
+        );
+        if (yaEnCruce) return false;
+      }
       return true;
     })
     .map(s => {
