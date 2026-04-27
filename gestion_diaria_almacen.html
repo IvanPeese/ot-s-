@@ -1238,15 +1238,11 @@ function otGenerar(tipo) {
       <div class="ot-orden-footer">
         <span class="ot-footer-hint">Genera el enlace, pégalo en Teams y el operario lo abre en el móvil</span>
         <div class="ot-footer-btns">
-          <button class="btn-html" onclick="otAbrirHTML('${tipo}')">
-            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;flex-shrink:0"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            Abrir OT
+          <button class="btn-html" id="ot-enlace-btn" onclick="otAbrirHTML('${tipo}')">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;flex-shrink:0"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+            Generar enlace OT
           </button>
-          <button class="btn-teams" onclick="otAbrirTeams()">
-            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;flex-shrink:0"><path d="M19.5 4.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5h15A1.5 1.5 0 0021 18V6a1.5 1.5 0 00-1.5-1.5zm-8.25 9.75H9v-5.5h1.5v2h1.5v-2H13.5v5.5H12v-2h-1.5v2h-.75zm6 0h-3v-5.5h3v1.25h-1.5v.75H16v1.25h-1.5v.75H18v1.5z"/></svg>
-            Abrir chat Teams
-          </button>
-          <span class="ot-copied" id="ot-copied">✓ OT abierta en nueva pestaña</span>
+          <span class="ot-copied" id="ot-copied">✓ Enlace copiado — pégalo en Teams</span>
         </div>
       </div>
     </div>`;
@@ -1681,8 +1677,8 @@ function otAbrirHTML(tipo) {
 
   const data = { titulo, meta, tipo: 'verificar', items: otItems };
 
-  const btn = document.getElementById('ot-' + tipo + '-btn');
-  const origTxt = btn ? btn.textContent : '';
+  const btn = document.getElementById('ot-enlace-btn');
+  const origTxt = btn ? btn.innerHTML : '';
   if (btn) { btn.textContent = 'Generando enlace…'; btn.disabled = true; }
 
   generarUrlOT(data).then(url => {
@@ -1694,7 +1690,7 @@ function otAbrirHTML(tipo) {
     setTimeout(() => {
       const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
       window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
-      setTimeout(() => { if (btn) { btn.textContent = origTxt; btn.disabled = false; } }, 3000);
+      setTimeout(() => { if (btn) { btn.innerHTML = origTxt; btn.disabled = false; } }, 3000);
     }, 500);
   });
 }
