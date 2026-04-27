@@ -2254,7 +2254,7 @@ function startSpinnerTimeout() {
     if (msg) msg.textContent = 'No se pudo cargar el CSV automáticamente.';
     if (timeout) timeout.style.display = 'block';
     if (manual) manual.style.display = 'block';
-  }, 8000); // 8 segundos
+  }, 30000); // 30 segundos — CSV grande en GitHub Pages puede tardar
 }
 function clearSpinnerTimeout() { clearTimeout(_spinnerTimeout); }
 
