@@ -998,17 +998,27 @@ function buildZonePills(tab, arr) {
   const container = document.getElementById('zbar-' + tab);
   if (!container) return;
   const activeZona = S.zonaFiltro[tab] || 'todas';
-  container.innerHTML = buildPillsHTML(
-    arr,
-    g => arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length,
-    'zp-' + tab,
-    `(z) => setZona('${tab}', z)`,
-    activeZona
-  );
-  // Fix onclick — template literal can't embed fn reference cleanly, use data attrs
+  const letras    = GRUPOS.filter(g => g.id.length === 1);
+  const numericas = GRUPOS.filter(g => g.id.length > 1);
+  const mkPill = (id, label, n, active) =>
+    `<button class="zpill${active ? ' active' : ''}" data-id="${id}" data-tab="${tab}">${label} <span class="zn">${n}</span></button>`;
+  let html = mkPill('todas', 'Todas', arr.length, activeZona === 'todas');
+  let addedL = 0, addedN = 0;
+  letras.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) { html += mkPill(g.id, g.label, n, activeZona === g.id); addedL++; }
+  });
+  numericas.forEach(g => {
+    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
+    if (n > 0) {
+      if (addedL > 0 && addedN === 0) html += '<span class="zpill-sep"></span>';
+      html += mkPill(g.id, g.label, n, activeZona === g.id);
+      addedN++;
+    }
+  });
+  container.innerHTML = html;
   container.querySelectorAll('.zpill').forEach(btn => {
-    const id = btn.id.replace('zp-' + tab + '-', '');
-    btn.onclick = () => setZona(tab, id);
+    btn.addEventListener('click', () => setZona(btn.dataset.tab, btn.dataset.id));
   });
 }
 
@@ -1181,31 +1191,30 @@ function changePg(tab, dir) {
 /* ── PANEL ZONAS ── */
 function renderZonasPanel() {
   const { conUbic } = S.sets;
-  let html = `<button class="zpill active" id="zp-zonas-todas" onclick="setZonaPanel('todas')">Todas <span class="zn">${conUbic.length}</span></button>`;
+  const savedZona = S.zonaFiltro['zonas'] || 'todas';
   const letras    = GRUPOS.filter(g => g.id.length === 1);
   const numericas = GRUPOS.filter(g => g.id.length > 1);
-  let addedLetras = 0, addedNumericas = 0;
+  const mkPill = (id, label, n) =>
+    `<button class="zpill${id === savedZona ? ' active' : ''}" data-id="${id}" data-panel="zonas">${label} <span class="zn">${n}</span></button>`;
+  let html = mkPill('todas', 'Todas', conUbic.length);
+  let addedL = 0, addedN = 0;
   letras.forEach(g => {
     const n = conUbic.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
-    if (n > 0) {
-      html += `<button class="zpill" id="zp-zonas-${g.id}" onclick="setZonaPanel('${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
-      addedLetras++;
-    }
+    if (n > 0) { html += mkPill(g.id, g.label, n); addedL++; }
   });
   numericas.forEach(g => {
     const n = conUbic.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
     if (n > 0) {
-      if (addedLetras > 0 && addedNumericas === 0) html += `<span class="zpill-sep"></span>`;
-      html += `<button class="zpill" id="zp-zonas-${g.id}" onclick="setZonaPanel('${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
-      addedNumericas++;
+      if (addedL > 0 && addedN === 0) html += '<span class="zpill-sep"></span>';
+      html += mkPill(g.id, g.label, n);
+      addedN++;
     }
   });
-  document.getElementById('zbar-zonas').innerHTML = html;
-  const savedZona = S.zonaFiltro['zonas'] || 'todas';
-  // Restore active pill
-  document.querySelectorAll('#zbar-zonas .zpill').forEach(b => b.classList.remove('active'));
-  const savedBtn = document.getElementById('zp-zonas-' + savedZona);
-  if (savedBtn) savedBtn.classList.add('active');
+  const zbar = document.getElementById('zbar-zonas');
+  zbar.innerHTML = html;
+  zbar.querySelectorAll('.zpill').forEach(btn => {
+    btn.addEventListener('click', () => setZonaPanel(btn.dataset.id));
+  });
   renderZonaGrid(savedZona);
 }
 
@@ -1326,23 +1335,26 @@ function otBuildZonePills(tipo, arr) {
   if (!container) return;
   const letras    = GRUPOS.filter(g => g.id.length === 1);
   const numericas = GRUPOS.filter(g => g.id.length > 1);
-  const pill = (id, label, n, active) =>
-    `<button class="zpill${active ? ' active' : ''}" style="font-size:11px;padding:3px 10px" id="otzp-${tipo}-${id}" onclick="otSetZona('${tipo}','${id}')">${label} <span class="zn">${n}</span></button>`;
-  let html = pill('todas', 'Todas', arr.length, true);
+  const mkPill = (id, label, n, active) =>
+    `<button class="zpill${active ? ' active' : ''}" style="font-size:11px;padding:3px 10px" data-id="${id}" data-ot="${tipo}">${label} <span class="zn">${n}</span></button>`;
+  let html = mkPill('todas', 'Todas', arr.length, true);
   let addedL = 0, addedN = 0;
   letras.forEach(g => {
     const n = arr.filter(r => g.test((r['UbicacionCodigo']||'').trim())).length;
-    if (n > 0) { html += pill(g.id, g.id, n, false); addedL++; }
+    if (n > 0) { html += mkPill(g.id, g.id, n, false); addedL++; }
   });
   numericas.forEach(g => {
     const n = arr.filter(r => g.test((r['UbicacionCodigo']||'').trim())).length;
     if (n > 0) {
       if (addedL > 0 && addedN === 0) html += '<span class="zpill-sep"></span>';
-      html += pill(g.id, g.label, n, false);
+      html += mkPill(g.id, g.label, n, false);
       addedN++;
     }
   });
   container.innerHTML = html;
+  container.querySelectorAll('.zpill').forEach(btn => {
+    btn.addEventListener('click', () => otSetZona(btn.dataset.ot, btn.dataset.id));
+  });
 }
 
 function otSetZona(tipo, zona) {
