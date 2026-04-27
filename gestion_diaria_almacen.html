@@ -1414,54 +1414,87 @@ function calcularSugerencias() {
     };
   });
 
+  // Ubicaciones realmente libres — no ocupadas por stock Y no ya asignadas como destino
+  const destinosUsados = new Set();
+
+  // Picking libre: no ocupado por ningún producto del CSV
   const pickingLibres  = Object.values(MAPA.dict).filter(m => m.tipo === 'picking'    && !m.ocupada);
   const sobreLibres    = Object.values(MAPA.dict).filter(m => m.tipo === 'sobrestock' && !m.ocupada);
+
   const pickMuertos    = productos.filter(p => p.tipo_ubic === 'picking'    && (p.rot_clase === 'nula' || p.rot_clase === 'muy_baja'));
   const sobreAltaMedia = productos.filter(p => p.tipo_ubic === 'sobrestock' && (p.rot_clase === 'alta' || p.rot_clase === 'media'));
 
   const sugerencias = [];
   const procesados  = new Set();
 
-  pickMuertos.forEach(p => {
-    if (procesados.has(p.ubic)) return;
-    const destino = sobreLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo)
-                 || sobreLibres.find(m => m.tamanyo === p.tamanyo);
-    sugerencias.push({ tipo:'t1', tipo_label:'Picking ocioso', producto:p, desde:p.ubic, hasta:destino?destino.ubic:null, impacto:p.exist, bloque:p.bloque });
-    procesados.add(p.ubic);
-    if (destino) { destino.ocupada = true; sobreLibres.splice(sobreLibres.indexOf(destino),1); }
-  });
+  // Picking muertos disponibles para cruce (no procesados aún)
+  const pickMuertosDisp = new Map(); // ubic -> producto
+  pickMuertos.forEach(p => pickMuertosDisp.set(p.ubic, p));
 
+  // PASO 1 — Para cada alta rotación en sobrestock:
+  //   a) Buscar picking muerto del mismo bloque/tamaño → cruce directo (T3)
+  //   b) Si no → picking libre del mismo bloque/tamaño → T2
+  //   c) Si no → sin destino
   sobreAltaMedia.forEach(p => {
     if (procesados.has(p.ubic)) return;
-    const destino = pickingLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo)
-                 || pickingLibres.find(m => m.tamanyo === p.tamanyo);
-    sugerencias.push({ tipo:'t2', tipo_label:'Alta rotación en sobrestock', producto:p, desde:p.ubic, hasta:destino?destino.ubic:null, impacto:p.rot1, bloque:p.bloque });
+
+    // a) Buscar picking muerto para cruce — mismo bloque y tamaño, no ya procesado
+    const muertoCruce =
+      pickMuertos.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !procesados.has(m.ubic) && !destinosUsados.has(m.ubic)) ||
+      pickMuertos.find(m => m.tamanyo === p.tamanyo && !procesados.has(m.ubic) && !destinosUsados.has(m.ubic));
+
+    if (muertoCruce) {
+      // Cruce: alta rot va al picking del muerto, muerto va al sobrestock de alta rot
+      sugerencias.push({
+        tipo: 't3', tipo_label: 'Cruce óptimo',
+        producto: muertoCruce,           // el que sale del picking
+        intercambio_con: p,              // el que entra al picking
+        desde: muertoCruce.ubic,         // picking → origen del muerto
+        hasta: p.ubic,                   // sobrestock → destino del muerto
+        intercambio_desde: p.ubic,       // sobrestock → origen de alta rot
+        impacto: muertoCruce.exist + p.rot1 * 3,
+        bloque: muertoCruce.bloque,
+      });
+      procesados.add(p.ubic);
+      procesados.add(muertoCruce.ubic);
+      destinosUsados.add(p.ubic);
+      destinosUsados.add(muertoCruce.ubic);
+      return;
+    }
+
+    // b) No hay muerto disponible — buscar picking libre
+    const pickLibre =
+      pickingLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic)) ||
+      pickingLibres.find(m => m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic));
+
+    sugerencias.push({
+      tipo: 't2', tipo_label: 'Alta rotación en sobrestock',
+      producto: p, desde: p.ubic,
+      hasta: pickLibre ? pickLibre.ubic : null,
+      impacto: p.rot1, bloque: p.bloque,
+    });
     procesados.add(p.ubic);
-    if (destino) { destino.ocupada = true; pickingLibres.splice(pickingLibres.indexOf(destino),1); }
+    if (pickLibre) destinosUsados.add(pickLibre.ubic);
   });
 
-  const t1SinDestino = sugerencias.filter(s => s.tipo === 't1' && !s.hasta);
-  const t2SinDestino = sugerencias.filter(s => s.tipo === 't2' && !s.hasta);
-  t1SinDestino.forEach(s1 => {
-    const par = t2SinDestino.find(s2 => s2.bloque === s1.bloque || s2.producto.tamanyo === s1.producto.tamanyo);
-    if (!par) return;
-    s1.tipo = 't3'; s1.tipo_label = 'Cruce óptimo';
-    s1.intercambio_con = par.producto; s1.intercambio_desde = par.desde;
-    s1.hasta = par.desde; par.hasta = s1.desde;
-    par.tipo = 't3'; par.tipo_label = 'Cruce óptimo';
-    par.intercambio_con = s1.producto; par.intercambio_desde = s1.desde;
-    s1.impacto = s1.producto.exist + (par.producto.rot1 * 3);
-    par.impacto = s1.impacto;
-    t2SinDestino.splice(t2SinDestino.indexOf(par), 1);
+  // PASO 2 — Picking muertos que NO participaron en ningún cruce → T1
+  pickMuertos.forEach(p => {
+    if (procesados.has(p.ubic)) return;
+    const sobreLibreCand =
+      sobreLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic)) ||
+      sobreLibres.find(m => m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic));
+    sugerencias.push({
+      tipo: 't1', tipo_label: 'Picking ocioso',
+      producto: p, desde: p.ubic,
+      hasta: sobreLibreCand ? sobreLibreCand.ubic : null,
+      impacto: p.exist, bloque: p.bloque,
+    });
+    procesados.add(p.ubic);
+    if (sobreLibreCand) destinosUsados.add(sobreLibreCand.ubic);
   });
 
-  const vistos = new Set();
-  const dedup  = sugerencias.filter(s => {
-    if (s.tipo !== 't3') return true;
-    const key = [s.desde, s.hasta].sort().join('|');
-    if (vistos.has(key)) return false;
-    vistos.add(key); return true;
-  });
+  // T3 ya se generan directamente en el paso 1 — no hay duplicados posibles
+  const dedup = sugerencias;
 
   REUB.sugerencias = dedup.sort((a,b) => b.impacto - a.impacto);
   REUB.pag = 0;
