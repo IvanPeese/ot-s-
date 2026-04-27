@@ -252,6 +252,80 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
 .reub-ubic-chip.neutro  { background: var(--surface2);  color: var(--text2);      border-color: var(--border-md); }
 .reub-warn { font-size: 11px; color: var(--warn-txt); background: var(--warn-bg); border: 1px solid var(--warn-bdr); border-radius: var(--r); padding: 5px 9px; margin-top: 6px; }
 .reub-empty { text-align: center; padding: 36px; color: var(--text3); font-size: 13px; }
+
+/* ── MEJORAS UI ── */
+
+/* 1. KPIs clicables */
+.kpi { cursor: pointer; transition: background .15s, box-shadow .15s; }
+.kpi:hover { background: var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.kpi:active { box-shadow: none; }
+
+/* 2. Badge global de alertas en header */
+.hdr-alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger-txt); display: none; flex-shrink: 0; box-shadow: 0 0 0 2px var(--surface); }
+.hdr-alert-dot.visible { display: inline-block; }
+
+/* 3. Columnas de tabla ordenables */
+thead th.sortable { cursor: pointer; user-select: none; }
+thead th.sortable:hover { color: var(--text); background: var(--border); }
+thead th.sort-asc::after  { content: ' ↑'; opacity: .7; }
+thead th.sort-desc::after { content: ' ↓'; opacity: .7; }
+
+/* 4. Selector de página size */
+.page-size-sel { font-size: 11px; padding: 3px 7px; border: 1px solid var(--border-md); border-radius: var(--r); background: var(--surface); color: var(--text2); cursor: pointer; font-family: var(--font); }
+
+/* 5. Botón exportar CSV */
+.btn-export { font-size: 11px; padding: 5px 10px; border: 1px solid var(--border-md); border-radius: var(--r); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--font); white-space: nowrap; transition: background .12s; }
+.btn-export:hover { background: var(--surface2); color: var(--text); }
+
+/* 6. Tooltip de descripción */
+.desc-tooltip { position: relative; }
+.desc-tooltip .tt { display: none; position: absolute; left: 0; top: 100%; z-index: 999; background: var(--text); color: var(--bg); font-size: 11px; padding: 5px 9px; border-radius: var(--r); white-space: normal; max-width: 280px; line-height: 1.4; margin-top: 3px; pointer-events: none; }
+.desc-tooltip:hover .tt, .desc-tooltip.open .tt { display: block; }
+
+/* 7. Timestamp de alertas */
+.alerta-time { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+/* 8. Resumen prioritario en alertas */
+.alertas-resumen { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface2); border-radius: var(--r); margin-bottom: 12px; flex-wrap: wrap; }
+.alertas-resumen-txt { font-size: 12px; color: var(--text2); flex: 1; }
+.alertas-resumen-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.alertas-resumen-badge.d { background: var(--danger-bg); color: var(--danger-txt); border: 1px solid var(--danger-bdr); }
+.alertas-resumen-badge.w { background: var(--warn-bg); color: var(--warn-txt); border: 1px solid var(--warn-bdr); }
+
+/* 9. Freshness indicator */
+.freshness { font-size: 11px; color: var(--text3); }
+.freshness.stale { color: var(--warn-txt); }
+
+/* 10. Badge de zonas con alertas */
+.zona-alert { font-size: 10px; color: var(--danger-txt); margin-top: 1px; }
+
+/* 11. Altura en destino de reubicación */
+.reub-alto-chip { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 6px; background: var(--info-bg); color: var(--info-txt); border: 1px solid var(--info-bdr); margin-left: 4px; vertical-align: middle; }
+
+/* 12. Historial OTs */
+.ot-historial { margin-top: 16px; padding: 12px 14px; background: var(--surface2); border-radius: var(--r); border: 1px solid var(--border); }
+.ot-hist-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.ot-hist-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); padding: 4px 0; border-bottom: 1px solid var(--border); }
+.ot-hist-item:last-child { border-bottom: none; }
+.ot-hist-item .ot-hist-time { color: var(--text3); font-size: 10px; margin-left: auto; white-space: nowrap; }
+
+/* 13. Ordenación actual indicada en select */
+.sort-indicator { font-size: 10px; color: var(--text3); }
+
+/* 14. Accesibilidad — iconos junto a colores */
+.chip-icon { margin-right: 3px; font-size: 9px; }
+
+/* 15. Tabs renombradas — tooltip en hover */
+.mtab[title]:hover::after { content: attr(title); position: absolute; background: var(--text); color: var(--bg); font-size: 11px; padding: 3px 8px; border-radius: 4px; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; z-index: 300; margin-top: 4px; pointer-events: none; }
+.mtab { position: relative; }
+
+/* 16. Reub expand persistente (estado visual) */
+.reub-card.expanded .reub-detail { display: block; }
+.reub-card.expanded .reub-chevron { transform: rotate(90deg); }
+
+/* 17. Timeout spinner */
+.upload-timeout { display: none; font-size: 12px; color: var(--warn-txt); margin-top: 10px; }
+
 </style>
 </head>
 <body>
@@ -259,10 +333,11 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
 <div class="hdr">
   <div>
     <h1>Gestión Diaria — Almacén A</h1>
-    <p id="fecha-lbl">—</p>
+    <p id="fecha-lbl">— <span class="freshness" id="freshness-lbl"></span></p>
   </div>
   <div class="hdr-r">
-    <button class="btn-sm" onclick="autoLoad()">⟳ Recargar</button>
+    <span class="hdr-alert-dot" id="hdr-alert-dot" title="Hay incidencias críticas"></span>
+    <button class="btn-sm" id="btn-reload" onclick="recargar()">⟳ Recargar</button>
     <label class="btn-sm" for="csv-reload" style="cursor:pointer">📂 CSV manual</label>
     <input type="file" id="csv-reload" accept=".csv" onchange="handleFile(this)">
     <span class="status"><span class="dot" id="sdot"></span><span id="stxt">Sin datos</span></span>
@@ -275,6 +350,7 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
     <h2>Panel de Gestión Diaria</h2>
     <p id="upload-msg">Buscando CSV en el repositorio…</p>
     <div id="upload-spinner" style="margin:12px auto;width:28px;height:28px;border:3px solid var(--border-md);border-top-color:var(--text2);border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div class="upload-timeout" id="upload-timeout">No se pudo conectar con el repositorio.</div>
     <div id="upload-manual" style="display:none">
       <label class="btn-up" for="csv-input">Seleccionar CSV manualmente</label>
       <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this)">
@@ -287,13 +363,13 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
 <div id="app">
 
   <div class="kpis">
-    <div class="kpi"><div class="kpi-lbl">Con ubicación</div><div class="kpi-val"    id="k-ubic">—</div><div class="kpi-sub">UbicacionCodigo</div></div>
-    <div class="kpi"><div class="kpi-lbl">Stock ubicado</div><div class="kpi-val ok"  id="k-stock">—</div><div class="kpi-sub">ubicados + exist.</div></div>
-    <div class="kpi"><div class="kpi-lbl">Sin ubicar</div>  <div class="kpi-val d"   id="k-sinubic">—</div><div class="kpi-sub">stock sin posición</div></div>
-    <div class="kpi"><div class="kpi-lbl">Rot. baja</div>   <div class="kpi-val w"   id="k-rot">—</div><div class="kpi-sub">0 ud/mes con ubic.</div></div>
-    <div class="kpi"><div class="kpi-lbl">Obsoletos</div>   <div class="kpi-val d"   id="k-obs">—</div><div class="kpi-sub">obsoleto + stock</div></div>
-    <div class="kpi"><div class="kpi-lbl">Negativos</div>   <div class="kpi-val d"   id="k-neg">—</div><div class="kpi-sub">existencias &lt; 0</div></div>
-    <div class="kpi"><div class="kpi-lbl">Sobrestock err.</div><div class="kpi-val w" id="k-sobre">—</div><div class="kpi-sub">alt &gt; existencias</div></div>
+    <div class="kpi" onclick="switchMain('zonas')" title="Ver por zona"><div class="kpi-lbl">Referencias ubicadas</div><div class="kpi-val" id="k-ubic">—</div><div class="kpi-sub">UbicacionCodigo</div></div>
+    <div class="kpi" onclick="switchMain('zonas')" title="Ver por zona"><div class="kpi-lbl">Con stock</div><div class="kpi-val ok" id="k-stock">—</div><div class="kpi-sub">ubicados + exist.</div></div>
+    <div class="kpi" onclick="switchMain('sin-ubic')" title="Ver sin ubicar"><div class="kpi-lbl">Sin ubicar</div><div class="kpi-val d" id="k-sinubic">—</div><div class="kpi-sub">stock sin posición</div></div>
+    <div class="kpi" onclick="switchMain('baja-rot')" title="Ver rotación baja"><div class="kpi-lbl">Rot. baja</div><div class="kpi-val w" id="k-rot">—</div><div class="kpi-sub">0 ud/mes con ubic.</div></div>
+    <div class="kpi" onclick="switchMain('obsoletos')" title="Ver obsoletos"><div class="kpi-lbl">Obsoletos</div><div class="kpi-val d" id="k-obs">—</div><div class="kpi-sub">obsoleto + stock</div></div>
+    <div class="kpi" onclick="switchMain('desajustes')" title="Ver desajustes"><div class="kpi-lbl">Negativos</div><div class="kpi-val d" id="k-neg">—</div><div class="kpi-sub">existencias &lt; 0</div></div>
+    <div class="kpi" onclick="switchMain('desajustes')" title="Ver desajustes"><div class="kpi-lbl">Sobrestock err.</div><div class="kpi-val w" id="k-sobre">—</div><div class="kpi-sub">alt &gt; existencias</div></div>
   </div>
 
   <div class="main-tabs">
@@ -303,8 +379,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
     <div class="mtab"        data-tab="obsoletos"  onclick="switchMain('obsoletos')">Obsoletos <span class="tbadge" id="cnt-obs">—</span></div>
     <div class="mtab"        data-tab="desajustes" onclick="switchMain('desajustes')">Desajustes <span class="tbadge" id="cnt-des">—</span></div>
     <div class="mtab"        data-tab="zonas"      onclick="switchMain('zonas')">Por zona</div>
-    <div class="mtab"        data-tab="ordenes"    onclick="switchMain('ordenes')">Órdenes de trabajo</div>
-    <div class="mtab"        data-tab="reubicacion" onclick="switchMain('reubicacion')">Sugerencias reubicación <span class="tbadge" id="cnt-reubic">—</span></div>
+    <div class="mtab"        data-tab="ordenes"    onclick="switchMain('ordenes')" title="Generar órdenes de verificación para operarios">OTs verificación</div>
+    <div class="mtab"        data-tab="reubicacion" onclick="switchMain('reubicacion')" title="Sugerencias de reubicación basadas en rotación">Reubicación <span class="tbadge" id="cnt-reubic">—</span></div>
   </div>
 
   <!-- ALERTAS -->
@@ -323,6 +399,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
           <option value="exist-asc">Menor stock primero</option>
           <option value="cod">Por código A–Z</option>
         </select>
+        <select class="page-size-sel" id="ps-sin-ubic" onchange="changePageSize('sin-ubic',this.value)"><option value="30">30</option><option value="50">50</option><option value="100">100</option></select>
+        <button class="btn-export" onclick="exportCSV('sin-ubic')">⬇ CSV</button>
         <span class="fctr" id="ctr-sin-ubic"></span>
       </div>
       <div class="tw"><table id="tbl-sin-ubic">
@@ -348,6 +426,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
           <option value="exist-asc">Menor stock primero</option>
           <option value="cod">Por código A–Z</option>
         </select>
+        <select class="page-size-sel" id="ps-baja-rot" onchange="changePageSize('baja-rot',this.value)"><option value="30">30</option><option value="50">50</option><option value="100">100</option></select>
+        <button class="btn-export" onclick="exportCSV('baja-rot')">⬇ CSV</button>
         <span class="fctr" id="ctr-baja-rot"></span>
       </div>
       <div class="tw"><table id="tbl-baja-rot">
@@ -372,6 +452,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
           <option value="exist-asc">Menor stock primero</option>
           <option value="cod">Por código A–Z</option>
         </select>
+        <select class="page-size-sel" id="ps-obsoletos" onchange="changePageSize('obsoletos',this.value)"><option value="30">30</option><option value="50">50</option><option value="100">100</option></select>
+        <button class="btn-export" onclick="exportCSV('obsoletos')">⬇ CSV</button>
         <span class="fctr" id="ctr-obsoletos"></span>
       </div>
       <div class="tw"><table id="tbl-obsoletos">
@@ -398,6 +480,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
           <option value="exist-desc">Mayor stock primero</option>
           <option value="cod">Por código A–Z</option>
         </select>
+        <select class="page-size-sel" id="ps-desajustes" onchange="changePageSize('desajustes',this.value)"><option value="30">30</option><option value="50">50</option><option value="100">100</option></select>
+        <button class="btn-export" onclick="exportCSV('desajustes')">⬇ CSV</button>
         <span class="fctr" id="ctr-desajustes"></span>
       </div>
       <div class="tw"><table id="tbl-desajustes">
@@ -512,13 +596,18 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
       </div>
       <!-- ORDEN GENERADA -->
       <div id="ot-orden-wrap"></div>
+      <div class="ot-historial" id="ot-hist-wrap" style="display:none">
+        <div class="ot-hist-title">Historial de OTs generadas hoy</div>
+        <div id="ot-hist-list"></div>
+      </div>
     </div>
   </div>
 
 </div><!-- /app -->
 
 <script>
-const PAGE = 30;
+const DEFAULT_PAGE = 30;
+function getPageSize(tab) { return S.pageSize?.[tab] || DEFAULT_PAGE; }
 
 const GRUPOS = [
   { id:'A', label:'Sector A', test: u => /^[Aa]/.test(u) },
@@ -533,7 +622,7 @@ const GRUPOS = [
   { id:'Otras', label:'Otras',   test: u => !/^[A-Ea-e0-4]/.test(u) },
 ];
 
-const S = { rows: [], sets: {}, pages: {}, zonaFiltro: {} };
+const S = { rows: [], sets: {}, pages: {}, zonaFiltro: {}, _cache: {} };
 
 /* ── UTILIDADES ── */
 function pn(s) {
@@ -556,6 +645,12 @@ function esc(s) {
 function setEl(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = typeof val === 'number' ? val.toLocaleString('es-ES') : val;
+}
+
+/* ── DEBOUNCE ── */
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
 // Extrae suma de cantidades entre paréntesis: "A01 23 1 (45)" → 45
@@ -620,21 +715,31 @@ function loadFile(file) {
 }
 
 const REPO_BASE = 'https://ivanpeese.github.io/ot-s-';
+const CHAT_ID   = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+
+async function recargar() {
+  const btn = document.getElementById('btn-reload');
+  if (btn) { btn.textContent = '⟳ Cargando…'; btn.disabled = true; }
+  document.getElementById('sdot').style.background = 'var(--warn-txt)';
+  document.getElementById('stxt').textContent = 'Actualizando datos…';
+  await autoLoad();
+  if (btn) { btn.textContent = '⟳ Recargar'; btn.disabled = false; }
+}
 
 async function autoLoad() {
-  // Try to load CSV from GitHub Pages repo
+  startSpinnerTimeout();
   try {
     const res = await fetch(REPO_BASE + '/Almacen_A.csv', { cache: 'no-cache' });
     if (!res.ok) throw new Error('CSV no encontrado (' + res.status + ')');
     const buf  = await res.arrayBuffer();
     const text = new TextDecoder('iso-8859-1').decode(buf);
     if (text.length < 10) throw new Error('CSV vacío');
+    clearSpinnerTimeout();
     processData(text);
-    // Also try to auto-load mapa
     autoLoadMapa();
     return;
   } catch(e) {
-    // Show manual upload option
+    clearSpinnerTimeout();
     document.getElementById('upload-spinner').style.display = 'none';
     document.getElementById('upload-msg').textContent = 'No se encontró Almacen_A.csv en el repositorio. Cárgalo manualmente o súbelo al repo.';
     document.getElementById('upload-manual').style.display = 'block';
@@ -655,13 +760,33 @@ async function autoLoadMapa() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', autoLoad);
+document.addEventListener('DOMContentLoaded', () => {
+  autoLoad();
+  // Attach debounced search handlers
+  ['sin-ubic','baja-rot','obsoletos','desajustes'].forEach(tab => {
+    const el = document.getElementById('s-' + tab);
+    if (el) {
+      el.removeAttribute('oninput');
+      el.addEventListener('input', debounce(() => { delete S._cache[tab]; renderTbl(tab); }, 180));
+    }
+  });
+  const sr = document.getElementById('s-reub');
+  if (sr) {
+    sr.removeAttribute('oninput');
+    sr.addEventListener('input', debounce(() => reubRender(), 180));
+  }
+});
 
 /* ── PROCESO PRINCIPAL ── */
 function processData(text) {
   const rows = parseCSV(text);
   if (!rows.length) { alert('El fichero está vacío o no es un CSV válido.'); return; }
   S.rows = rows;
+  computeSets(rows);
+  updateUI();
+}
+
+function computeSets(rows) {
 
   // Conjuntos base
   const conUbic   = rows.filter(r => (r['UbicacionCodigo'] || '').trim());
@@ -694,7 +819,12 @@ function processData(text) {
 
   S.sets = { sinUbic, bajaRot, obsoletos, desajustes, negativos, sobrestock, conUbic, stockUbic };
   S.pages = { 'sin-ubic': 0, 'baja-rot': 0, 'obsoletos': 0, 'desajustes': 0 };
+  S._cache = {};
   S.zonaFiltro = { 'baja-rot': 'todas', 'obsoletos': 'todas', 'desajustes': 'todas', 'zonas': 'todas' };
+}
+
+function updateUI() {
+  const { sinUbic, bajaRot, obsoletos, desajustes, negativos, sobrestock, conUbic, stockUbic } = S.sets;
 
   // KPIs
   setEl('k-ubic',    conUbic.length);
@@ -710,6 +840,8 @@ function processData(text) {
   const alertBadge = document.getElementById('cnt-alertas');
   alertBadge.textContent = criticos;
   alertBadge.classList.toggle('alert', criticos > 0);
+  const alertDot = document.getElementById('hdr-alert-dot');
+  if (alertDot) alertDot.classList.toggle('visible', criticos > 0);
 
   setEl('cnt-sinubic', sinUbic.length);
   setEl('cnt-rot',     bajaRot.length);
@@ -723,6 +855,8 @@ function processData(text) {
     ' ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
   document.getElementById('sdot').style.background = 'var(--ok-txt)';
   document.getElementById('stxt').textContent = rows.length.toLocaleString('es-ES') + ' referencias cargadas';
+  _loadTime = Date.now();
+  updateFreshness();
 
   // Nota desajustes: avisa cuántos negativos no tienen ubicación
   const negSinUbic = negativos.filter(r => !(r['UbicacionCodigo'] || '').trim()).length;
@@ -747,6 +881,7 @@ function processData(text) {
   renderTbl('desajustes');
   renderZonasPanel();
   otInit();
+  renderHistorial();
   if (MAPA.loaded) calcularSugerencias();
   // Ensure reub-upload-warn stays hidden if mapa already loaded
   if (MAPA.loaded) {
@@ -798,47 +933,76 @@ function renderAlertas() {
     items.push({ cls:'ok', ico:'✓', ttl:'Sin incidencias detectadas hoy',
       desc:'El almacén no presenta desajustes ni alertas críticas en este corte de datos.', tab: null });
 
-  document.getElementById('alertas-cnt').innerHTML = items.map(a => `
+  const criticoCount = items.filter(i=>i.cls==='d').length;
+  const warningCount = items.filter(i=>i.cls==='w').length;
+  const now2 = new Date();
+  const horaCalc = now2.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  let resumenHtml = '';
+  if (criticoCount > 0 || warningCount > 0) {
+    resumenHtml = `<div class="alertas-resumen">
+      <span class="alertas-resumen-txt">Calculado a las ${horaCalc} · Acción recomendada: resolver primero los críticos</span>
+      ${criticoCount > 0 ? `<span class="alertas-resumen-badge d">⚠ ${criticoCount} crítico${criticoCount>1?'s':''}</span>` : ''}
+      ${warningCount > 0 ? `<span class="alertas-resumen-badge w">○ ${warningCount} aviso${warningCount>1?'s':''}</span>` : ''}
+    </div>`;
+  }
+  document.getElementById('alertas-cnt').innerHTML = resumenHtml + items.map(a => `
     <div class="alerta ${a.cls}">
       <div class="alerta-ico">${a.ico}</div>
       <div class="alerta-body">
         <div class="alerta-ttl">${esc(a.ttl)}</div>
         <div class="alerta-desc">${esc(a.desc)}</div>
+        <div class="alerta-time">Detectado: ${horaCalc}</div>
       </div>
       ${a.tab ? `<div class="alerta-act"><button class="btn-sm" onclick="switchMain('${a.tab}')">Ver →</button></div>` : ''}
     </div>`).join('');
 }
 
 /* ── ZONE PILLS ── */
+/* ── PILLS BUILDER (genérico) ── */
+function buildPillsHTML(items, countFn, idPrefix, onClickFn, activeId = 'todas') {
+  const letras    = GRUPOS.filter(g => g.id.length === 1);
+  const numericas = GRUPOS.filter(g => g.id.length > 1);
+  const mkPill = (id, label, n) =>
+    `<button class="zpill${id === activeId ? ' active' : ''}" id="${idPrefix}-${id}" onclick="${onClickFn}('${id}')">${label} <span class="zn">${n}</span></button>`;
+  let html = mkPill('todas', 'Todas', items.length);
+  let addedL = 0, addedN = 0;
+  letras.forEach(g => {
+    const n = countFn(g);
+    if (n > 0) { html += mkPill(g.id, g.label, n); addedL++; }
+  });
+  numericas.forEach(g => {
+    const n = countFn(g);
+    if (n > 0) {
+      if (addedL > 0 && addedN === 0) html += `<span class="zpill-sep"></span>`;
+      html += mkPill(g.id, g.label, n);
+      addedN++;
+    }
+  });
+  return html;
+}
+
 function buildZonePills(tab, arr) {
   const container = document.getElementById('zbar-' + tab);
   if (!container) return;
-  let html = `<button class="zpill active" id="zp-${tab}-todas" onclick="setZona('${tab}','todas')">Todas <span class="zn">${arr.length}</span></button>`;
-  const letras    = GRUPOS.filter(g => g.id.length === 1);
-  const numericas = GRUPOS.filter(g => g.id.length > 1);
-  let addedLetras = 0, addedNumericas = 0;
-  letras.forEach(g => {
-    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
-    if (n > 0) {
-      html += `<button class="zpill" id="zp-${tab}-${g.id}" onclick="setZona('${tab}','${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
-      addedLetras++;
-    }
+  const activeZona = S.zonaFiltro[tab] || 'todas';
+  container.innerHTML = buildPillsHTML(
+    arr,
+    g => arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length,
+    'zp-' + tab,
+    `(z) => setZona('${tab}', z)`,
+    activeZona
+  );
+  // Fix onclick — template literal can't embed fn reference cleanly, use data attrs
+  container.querySelectorAll('.zpill').forEach(btn => {
+    const id = btn.id.replace('zp-' + tab + '-', '');
+    btn.onclick = () => setZona(tab, id);
   });
-  numericas.forEach(g => {
-    const n = arr.filter(r => g.test((r['UbicacionCodigo'] || '').trim())).length;
-    if (n > 0) {
-      if (addedLetras > 0 && addedNumericas === 0) html += `<span class="zpill-sep"></span>`;
-      html += `<button class="zpill" id="zp-${tab}-${g.id}" onclick="setZona('${tab}','${g.id}')">${g.label} <span class="zn">${n}</span></button>`;
-      addedNumericas++;
-    }
-  });
-  container.innerHTML = html;
 }
 
 function setZona(tab, zona) {
   S.zonaFiltro[tab] = zona;
   S.pages[tab] = 0;
-  // Limpiar búsqueda al cambiar zona para evitar confusión
+  delete S._cache[tab];
   const search = document.getElementById('s-' + tab);
   if (search) search.value = '';
   document.querySelectorAll(`#zbar-${tab} .zpill`).forEach(b => b.classList.remove('active'));
@@ -848,7 +1012,8 @@ function setZona(tab, zona) {
 }
 
 /* ── TABLAS ── */
-function getFiltered(tab) {
+function getFiltered(tab, useCache = false) {
+  if (useCache && S._cache[tab]) return S._cache[tab];
   const keyMap = { 'sin-ubic': 'sinUbic', 'baja-rot': 'bajaRot', 'obsoletos': 'obsoletos', 'desajustes': 'desajustes' };
   let arr = [...(S.sets[keyMap[tab]] || [])];
 
@@ -885,27 +1050,40 @@ function getFiltered(tab) {
       return da !== db ? da - db : pn(b['Existencias']) - pn(a['Existencias']);
     });
   }
-  else arr.sort((a, b) => (a['Codigo'] || '').localeCompare(b['Codigo'] || ''));
+  // Column sort takes priority if set
+  const ss = S.sortState[tab];
+  if (ss) {
+    arr.sort((a, b) => {
+      let va = a[ss.col] || '', vb = b[ss.col] || '';
+      if (ss.type === 'num') { va = pn(va); vb = pn(vb); return ss.dir==='asc' ? va-vb : vb-va; }
+      return ss.dir==='asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    });
+  } else {
+    arr.sort((a, b) => (a['Codigo'] || '').localeCompare(b['Codigo'] || ''));
+  }
 
+  S._cache[tab] = arr;
   return arr;
 }
 
-function renderTbl(tab) { S.pages[tab] = 0; renderPage(tab); }
+function renderTbl(tab) { S.pages[tab] = 0; delete S._cache[tab]; renderPage(tab); }
 
 function renderPage(tab) {
-  const arr   = getFiltered(tab);
+  const arr   = getFiltered(tab, true);
   const page  = S.pages[tab] || 0;
+  const PS    = getPageSize(tab);
   const total = arr.length;
-  const slice = arr.slice(page * PAGE, page * PAGE + PAGE);
+  const slice = arr.slice(page * PS, page * PS + PS);
 
   // Contador y paginación
   const ctr = document.getElementById('ctr-' + tab);
   if (ctr) ctr.textContent = total.toLocaleString('es-ES') + ' registros';
   const pi  = document.getElementById('pi-' + tab);
-  const totalPags = Math.max(1, Math.ceil(total / PAGE));
+  const PS2 = getPageSize(tab);
+  const totalPags = Math.max(1, Math.ceil(total / PS2));
   if (pi) pi.textContent = total === 0 ? 'Sin resultados' : `Pág. ${page + 1} de ${totalPags} · ${total.toLocaleString('es-ES')} total`;
   const pv  = document.getElementById('pv-' + tab); if (pv)  pv.disabled  = page === 0;
-  const pn_ = document.getElementById('pn-' + tab); if (pn_) pn_.disabled = (page + 1) * PAGE >= total;
+  const pn_ = document.getElementById('pn-' + tab); if (pn_) pn_.disabled = (page + 1) * PS2 >= total;
 
   const tbody = document.querySelector(`#tbl-${tab} tbody`);
   if (!tbody) return;
@@ -942,7 +1120,7 @@ function renderPage(tab) {
         <td class="num">${fmt(ex)}</td>
         <td class="num"><span class="chip w">0</span></td>
         <td class="num">${fmt(r3)}</td>
-        <td><span class="chip ${muerto ? 'd' : 'w'}">${muerto ? 'Stock muerto' : 'Sin salidas'}</span></td>
+        <td><span class="chip ${muerto ? 'd' : 'w'}">${muerto ? '■ Stock muerto' : '● Sin salidas'}</span></td>
       </tr>`;
     });
   } else if (tab === 'obsoletos') {
@@ -981,8 +1159,8 @@ function renderPage(tab) {
 }
 
 function changePg(tab, dir) {
-  const arr = getFiltered(tab);
-  const max = Math.max(0, Math.ceil(arr.length / PAGE) - 1);
+  const arr = getFiltered(tab, true);
+  const max = Math.max(0, Math.ceil(arr.length / getPageSize(tab)) - 1);
   S.pages[tab] = Math.max(0, Math.min(max, (S.pages[tab] || 0) + dir));
   renderPage(tab);
 }
@@ -1010,7 +1188,12 @@ function renderZonasPanel() {
     }
   });
   document.getElementById('zbar-zonas').innerHTML = html;
-  renderZonaGrid('todas');
+  const savedZona = S.zonaFiltro['zonas'] || 'todas';
+  // Restore active pill
+  document.querySelectorAll('#zbar-zonas .zpill').forEach(b => b.classList.remove('active'));
+  const savedBtn = document.getElementById('zp-zonas-' + savedZona);
+  if (savedBtn) savedBtn.classList.add('active');
+  renderZonaGrid(savedZona);
 }
 
 function setZonaPanel(grupo) {
@@ -1301,7 +1484,7 @@ function otGenerar(tipo) {
 }
 
 function otAbrirTeams() {
-  const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+  // use global CHAT_ID
   window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
 }
 
@@ -1353,7 +1536,14 @@ function clasificarUbic(bloque, columna, nivel) {
   return { tipo, tamanyo, peso };
 }
 
-function normUbic(u) { return (u || '').replace(/\s/g, '').trim(); }
+const _normCache = new Map();
+function normUbic(u) {
+  if (!u) return '';
+  if (_normCache.has(u)) return _normCache.get(u);
+  const v = u.replace(/\s/g, '').trim();
+  _normCache.set(u, v);
+  return v;
+}
 
 function procesaMapa(text) {
   const filas = parseCSVMapa(text);
@@ -1432,6 +1622,42 @@ function calcularSugerencias() {
   const pickMuertosDisp = new Map(); // ubic -> producto
   pickMuertos.forEach(p => pickMuertosDisp.set(p.ubic, p));
 
+  // Índice de pickMuertos y pickingLibres por bloque+tamaño para O(1) lookup
+  const muertosIdx = {};
+  pickMuertos.forEach(p => {
+    const k = p.bloque + '|' + p.tamanyo;
+    if (!muertosIdx[k]) muertosIdx[k] = [];
+    muertosIdx[k].push(p);
+  });
+  const libresIdx = {};
+  pickingLibres.forEach(m => {
+    const k = m.bloque + '|' + m.tamanyo;
+    if (!libresIdx[k]) libresIdx[k] = [];
+    libresIdx[k].push(m);
+  });
+  function nextMuerto(bloque, tamanyo) {
+    const exact = (muertosIdx[bloque+'|'+tamanyo] || []).find(m => !procesados.has(m.ubic) && !destinosUsados.has(m.ubic));
+    if (exact) return exact;
+    for (const k of Object.keys(muertosIdx)) {
+      if (k.endsWith('|'+tamanyo)) {
+        const m = muertosIdx[k].find(x => !procesados.has(x.ubic) && !destinosUsados.has(x.ubic));
+        if (m) return m;
+      }
+    }
+    return null;
+  }
+  function nextLibre(bloque, tamanyo) {
+    const exact = (libresIdx[bloque+'|'+tamanyo] || []).find(m => !destinosUsados.has(m.ubic));
+    if (exact) return exact;
+    for (const k of Object.keys(libresIdx)) {
+      if (k.endsWith('|'+tamanyo)) {
+        const m = libresIdx[k].find(x => !destinosUsados.has(x.ubic));
+        if (m) return m;
+      }
+    }
+    return null;
+  }
+
   // PASO 1 — Para cada alta rotación en sobrestock:
   //   a) Buscar picking muerto del mismo bloque/tamaño → cruce directo (T3)
   //   b) Si no → picking libre del mismo bloque/tamaño → T2
@@ -1439,10 +1665,8 @@ function calcularSugerencias() {
   sobreAltaMedia.forEach(p => {
     if (procesados.has(p.ubic)) return;
 
-    // a) Buscar picking muerto para cruce — mismo bloque y tamaño, no ya procesado
-    const muertoCruce =
-      pickMuertos.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !procesados.has(m.ubic) && !destinosUsados.has(m.ubic)) ||
-      pickMuertos.find(m => m.tamanyo === p.tamanyo && !procesados.has(m.ubic) && !destinosUsados.has(m.ubic));
+    // a) Buscar picking muerto para cruce usando índice
+    const muertoCruce = nextMuerto(p.bloque, p.tamanyo);
 
     if (muertoCruce) {
       // Cruce: alta rot va al picking del muerto, muerto va al sobrestock de alta rot
@@ -1463,10 +1687,8 @@ function calcularSugerencias() {
       return;
     }
 
-    // b) No hay muerto disponible — buscar picking libre
-    const pickLibre =
-      pickingLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic)) ||
-      pickingLibres.find(m => m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic));
+    // b) No hay muerto disponible — buscar picking libre usando índice
+    const pickLibre = nextLibre(p.bloque, p.tamanyo);
 
     sugerencias.push({
       tipo: 't2', tipo_label: 'Alta rotación en sobrestock',
@@ -1481,9 +1703,24 @@ function calcularSugerencias() {
   // PASO 2 — Picking muertos que NO participaron en ningún cruce → T1
   pickMuertos.forEach(p => {
     if (procesados.has(p.ubic)) return;
-    const sobreLibreCand =
-      sobreLibres.find(m => m.bloque === p.bloque && m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic)) ||
-      sobreLibres.find(m => m.tamanyo === p.tamanyo && !destinosUsados.has(m.ubic));
+    // Use indexed lookup for sobrestock libres too
+    const sobreLibreIdx = {};
+    sobreLibres.forEach(m => {
+      const k = m.bloque + '|' + m.tamanyo;
+      if (!sobreLibreIdx[k]) sobreLibreIdx[k] = [];
+      sobreLibreIdx[k].push(m);
+    });
+    const sobreLibreCand = (() => {
+      const exact = (sobreLibreIdx[p.bloque+'|'+p.tamanyo]||[]).find(m => !destinosUsados.has(m.ubic));
+      if (exact) return exact;
+      for (const k of Object.keys(sobreLibreIdx)) {
+        if (k.endsWith('|'+p.tamanyo)) {
+          const m = sobreLibreIdx[k].find(x => !destinosUsados.has(x.ubic));
+          if (m) return m;
+        }
+      }
+      return null;
+    })();
     sugerencias.push({
       tipo: 't1', tipo_label: 'Picking ocioso',
       producto: p, desde: p.ubic,
@@ -1601,6 +1838,7 @@ function reubRenderPage() {
         <div>
           <div class="reub-col-lbl">Posición que se libera</div>
           <div class="reub-col-meta" style="margin-top:4px">Al mover este producto, <strong style="font-family:var(--mono)">${s.desde}</strong> queda disponible para alta rotación.</div>
+          ${s.hasta ? `<div class="reub-col-meta" style="margin-top:6px">Destino: <strong style="font-family:var(--mono)">${s.hasta}</strong>${MAPA.dict[s.hasta]?.alto ? ` <span class="reub-alto-chip">${MAPA.dict[s.hasta].alto}cm</span>` : ''}</div>` : ''}
         </div>
       </div>`;
     } else if (s.tipo === 't2') {
@@ -1612,7 +1850,7 @@ function reubRenderPage() {
           <div class="reub-col-meta">Rot. 1 mes: <span>${fmt(p.rot1)} ud.</span> · 3 meses: <span>${fmt(p.rot3)} ud.</span></div>
           <div class="reub-col-meta">Stock: <span>${fmt(p.exist)} ud.</span></div>
           <div style="margin-top:6px"><span class="reub-ubic-chip origen">Origen sobrestock: ${s.desde}</span></div>
-          ${s.hasta ? `<div style="margin-top:4px"><span class="reub-ubic-chip destino">Destino picking: ${s.hasta}</span></div>` : '<div style="margin-top:4px;font-size:11px;color:var(--text3)">Sin picking libre — combinar con picking ocioso</div>'}
+          ${s.hasta ? `<div style="margin-top:4px"><span class="reub-ubic-chip destino">Destino picking: ${s.hasta}</span>${MAPA.dict[s.hasta]?.alto ? ` <span class="reub-alto-chip">${MAPA.dict[s.hasta].alto}cm</span>` : ''}</div>` : '<div style="margin-top:4px;font-size:11px;color:var(--text3)">Sin picking libre — combinar con picking ocioso</div>'}
         </div>
         <div>
           <div class="reub-col-lbl">Beneficio esperado</div>
@@ -1685,8 +1923,11 @@ function reubUpdateSelBar() {
   const n   = REUB.seleccionadas.size;
   const btn = document.getElementById('reub-gen-btn');
   const cnt = document.getElementById('reub-sel-count');
-  if (btn) btn.disabled = n === 0;
-  if (cnt) cnt.textContent = n === 0 ? '0 seleccionadas' : n + ' sugerencia' + (n>1?'s':'') + ' seleccionada' + (n>1?'s':'');
+  if (btn) {
+    btn.disabled = n === 0;
+    btn.textContent = n === 0 ? 'Generar OT →' : 'Generar OT (' + n + ' movimiento' + (n>1?'s':'') + ') →';
+  }
+  if (cnt) cnt.textContent = n === 0 ? '0 seleccionadas' : n + ' seleccionada' + (n>1?'s':'');
 }
 
 function reubPg(dir) {
@@ -1729,7 +1970,7 @@ async function generarUrlOT(data) {
 
 function copiarYAbrirTeams(url, titulo) {
   navigator.clipboard.writeText(url).catch(() => {});
-  const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+  // use global CHAT_ID
   // Small delay so clipboard write completes
   setTimeout(() => {
     window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
@@ -1777,11 +2018,12 @@ function otAbrirHTML(tipo) {
   generarUrlOT(data).then(url => {
     navigator.clipboard.writeText(url).catch(() => {});
     if (btn) { btn.textContent = '✓ Enlace copiado — pega en Teams'; }
+    registrarOT(tipo, items.length);
     const copied = document.getElementById('ot-copied');
     if (copied) { copied.style.display = 'inline'; setTimeout(() => { copied.style.display = 'none'; }, 5000); }
     // Open Teams
     setTimeout(() => {
-      const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+      // use global CHAT_ID
       window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
       setTimeout(() => { if (btn) { btn.innerHTML = origTxt; btn.disabled = false; } }, 3000);
     }, 500);
@@ -1880,14 +2122,128 @@ function reubGenerarOT() {
   generarUrlOT(data).then(url => {
     navigator.clipboard.writeText(url).catch(() => {});
     if (btn) { btn.textContent = '✓ Enlace copiado — pega en Teams'; }
+    registrarOT('reub', items.length);
     setTimeout(() => {
-      const chatId = '19:9eb5229f45ee49dd9c837d7c8cb988a7@thread.v2';
+      // use global CHAT_ID
       window.location.href = 'msteams://teams.microsoft.com/l/chat/' + chatId + '/0';
       setTimeout(() => { if (btn) { btn.textContent = origTxt; btn.disabled = false; } }, 3000);
     }, 500);
   });
 }
 
+
+
+/* ── PAGE SIZE ── */
+function changePageSize(tab, size) {
+  S.pageSize[tab] = parseInt(size);
+  S.pages[tab] = 0;
+  delete S._cache[tab];
+  renderPage(tab);
+}
+
+/* ── EXPORT CSV ── */
+function exportCSV(tab) {
+  const arr = getFiltered(tab, true);
+  if (!arr.length) return;
+  const cols = {
+    'sin-ubic':   ['Codigo','Descripcion','Almacen','Existencias','UDS_1Mes','UDS_3Meses','Catalogo'],
+    'baja-rot':   ['Codigo','Descripcion','UbicacionCodigo','Existencias','UDS_1Mes','UDS_3Meses'],
+    'obsoletos':  ['Codigo','Descripcion','UbicacionCodigo','Existencias','UDS_1Mes','Catalogo','Almacen'],
+    'desajustes': ['Codigo','Descripcion','UbicacionCodigo','Existencias','UbicacionCodigoAlt1','UbicacionCodigoAlt2'],
+  };
+  const headers = cols[tab] || Object.keys(arr[0]).filter(k => !k.startsWith('_'));
+  const lines = [headers.join(';')];
+  arr.forEach(r => lines.push(headers.map(h => '"' + (r[h] || '').toString().replace(/"/g,'""') + '"').join(';')));
+  const bom = String.fromCharCode(0xFEFF);
+  const blob = new Blob([bom + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = tab + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── TABLE SORT BY COLUMN ── */
+function sortByCol(tab, col, type) {
+  const cur = S.sortState[tab];
+  const dir = (cur?.col === col && cur?.dir === 'asc') ? 'desc' : 'asc';
+  S.sortState[tab] = { col, dir, type };
+  delete S._cache[tab];
+  S.pages[tab] = 0;
+  // Update header indicators
+  document.querySelectorAll(`#tbl-${tab} thead th`).forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+  });
+  const el = document.querySelector(`#tbl-${tab} thead th[data-col="${col}"]`);
+  if (el) el.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  renderPage(tab);
+}
+
+/* ── FRESHNESS ── */
+let _loadTime = null;
+function updateFreshness() {
+  if (!_loadTime) return;
+  const mins = Math.floor((Date.now() - _loadTime) / 60000);
+  const el = document.getElementById('freshness-lbl');
+  if (!el) return;
+  if (mins < 1) { el.textContent = ''; el.className = 'freshness'; }
+  else if (mins < 30) { el.textContent = `(hace ${mins} min)`; el.className = 'freshness'; }
+  else { el.textContent = `(hace ${mins} min — considera recargar)`; el.className = 'freshness stale'; }
+}
+setInterval(updateFreshness, 60000);
+
+/* ── HISTORIAL OTs ── */
+const OT_HIST = JSON.parse(localStorage.getItem('ot_historial') || '[]');
+function registrarOT(tipo, count) {
+  const entry = { tipo, count, hora: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), fecha: new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}) };
+  OT_HIST.unshift(entry);
+  if (OT_HIST.length > 20) OT_HIST.pop();
+  localStorage.setItem('ot_historial', JSON.stringify(OT_HIST));
+  renderHistorial();
+}
+function renderHistorial() {
+  const wrap = document.getElementById('ot-hist-wrap');
+  const list = document.getElementById('ot-hist-list');
+  if (!wrap || !list) return;
+  if (!OT_HIST.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const tipoLbl = { neg:'Stock negativo', sob:'Sobrestock Alt', reub:'Reubicación' };
+  list.innerHTML = OT_HIST.slice(0,8).map(e =>
+    `<div class="ot-hist-item">
+      <span class="chip g">${tipoLbl[e.tipo]||e.tipo}</span>
+      <span>${e.count} artículo${e.count>1?'s':''}</span>
+      <span class="ot-hist-time">${e.fecha} ${e.hora}</span>
+    </div>`
+  ).join('');
+}
+
+/* ── SPINNER TIMEOUT ── */
+let _spinnerTimeout;
+function startSpinnerTimeout() {
+  _spinnerTimeout = setTimeout(() => {
+    const spinner = document.getElementById('upload-spinner');
+    const msg     = document.getElementById('upload-msg');
+    const timeout = document.getElementById('upload-timeout');
+    const manual  = document.getElementById('upload-manual');
+    if (spinner) spinner.style.display = 'none';
+    if (msg) msg.textContent = 'No se pudo cargar el CSV automáticamente.';
+    if (timeout) timeout.style.display = 'block';
+    if (manual) manual.style.display = 'block';
+  }, 8000); // 8 segundos
+}
+function clearSpinnerTimeout() { clearTimeout(_spinnerTimeout); }
+
+/* ── REUB CARD EXPAND PERSIST ── */
+function reubToggle(idx) {
+  const det  = document.getElementById('det-' + idx);
+  const card = det?.closest('.reub-card');
+  const chev = document.getElementById('chev-' + idx);
+  if (!det) return;
+  const open = det.classList.toggle('open');
+  if (card) card.classList.toggle('expanded', open);
+  if (chev) chev.textContent = open ? '▼' : '▶';
+}
 
 /* ── TABS PRINCIPALES ── */
 function switchMain(tab) {
