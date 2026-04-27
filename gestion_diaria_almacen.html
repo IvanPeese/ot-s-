@@ -42,6 +42,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
 .status { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
 
 /* ── UPLOAD ── */
+@keyframes spin{to{transform:rotate(360deg)}}
 .upload-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); padding: 24px; }
 .upload { max-width: 440px; width: 100%; padding: 36px 32px; border: 1.5px dashed var(--border-md); border-radius: var(--rl); text-align: center; background: var(--surface); transition: border-color .15s, background .15s; }
 .upload.drag { border-color: var(--info-txt); background: var(--info-bg); }
@@ -261,7 +262,8 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
     <p id="fecha-lbl">—</p>
   </div>
   <div class="hdr-r">
-    <label class="btn-sm" for="csv-reload" style="cursor:pointer">⟳ Cambiar CSV</label>
+    <button class="btn-sm" onclick="autoLoad()">⟳ Recargar</button>
+    <label class="btn-sm" for="csv-reload" style="cursor:pointer">📂 CSV manual</label>
     <input type="file" id="csv-reload" accept=".csv" onchange="handleFile(this)">
     <span class="status"><span class="dot" id="sdot"></span><span id="stxt">Sin datos</span></span>
   </div>
@@ -271,10 +273,13 @@ td.neg { color: var(--danger-txt); font-weight: 600; }
 <div id="upload-wrap" class="upload-wrap">
   <div class="upload" id="upload-box">
     <h2>Panel de Gestión Diaria</h2>
-    <p>Carga el CSV de Almacén A para analizar el estado del stock y detectar incidencias.</p>
-    <label class="btn-up" for="csv-input">Seleccionar CSV</label>
-    <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this)">
-    <small>También puedes arrastrar el fichero aquí · Separador ; · Latin-1</small>
+    <p id="upload-msg">Buscando CSV en el repositorio…</p>
+    <div id="upload-spinner" style="margin:12px auto;width:28px;height:28px;border:3px solid var(--border-md);border-top-color:var(--text2);border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div id="upload-manual" style="display:none">
+      <label class="btn-up" for="csv-input">Seleccionar CSV manualmente</label>
+      <input type="file" id="csv-input" accept=".csv" onchange="handleFile(this)">
+      <small style="display:block;margin-top:12px">También puedes arrastrar el fichero aquí · Separador ; · Latin-1</small>
+    </div>
   </div>
 </div>
 
@@ -613,6 +618,45 @@ function loadFile(file) {
   reader.onload = e => processData(e.target.result);
   reader.readAsText(file, 'iso-8859-1');
 }
+
+const REPO_BASE = 'https://ivanpeese.github.io/ot-s-';
+
+async function autoLoad() {
+  // Try to load CSV from GitHub Pages repo
+  try {
+    const res = await fetch(REPO_BASE + '/Almacen_A.csv', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('CSV no encontrado');
+    const text = await res.text();
+    // Detect if it's actually a CSV (has semicolons) not a 404 HTML page
+    if (!text.includes(';')) throw new Error('Respuesta no es un CSV válido');
+    processData(text);
+    // Also try to auto-load mapa
+    autoLoadMapa();
+    return;
+  } catch(e) {
+    // Show manual upload option
+    document.getElementById('upload-spinner').style.display = 'none';
+    document.getElementById('upload-msg').textContent = 'No se encontró Almacen_A.csv en el repositorio. Cárgalo manualmente o súbelo al repo.';
+    document.getElementById('upload-manual').style.display = 'block';
+  }
+}
+
+async function autoLoadMapa() {
+  try {
+    const res = await fetch(REPO_BASE + '/Mapa_almacen.csv', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('Mapa no encontrado');
+    const text = await res.text();
+    if (!text.includes(';')) throw new Error('No es CSV');
+    procesaMapa(text);
+    // Hide mapa upload warning in reubicacion panel
+    const warn = document.getElementById('reub-upload-warn');
+    if (warn) warn.style.display = 'none';
+  } catch(e) {
+    // Silent fail — mapa is optional, user can load it manually
+  }
+}
+
+document.addEventListener('DOMContentLoaded', autoLoad);
 
 /* ── PROCESO PRINCIPAL ── */
 function processData(text) {
