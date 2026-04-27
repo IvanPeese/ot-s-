@@ -1570,7 +1570,8 @@ function reubRenderPage() {
     const p         = s.producto;
     const rotBadge  = (p.rot_clase === 'alta' || p.rot_clase === 'media') ? 'ok' : p.rot_clase === 'baja' ? 'w' : 'd';
     const rotLbl    = { alta:'Alta', media:'Media', baja:'Baja', muy_baja:'Muy baja', nula:'Nula' }[p.rot_clase] || '—';
-    const isChecked = REUB.seleccionadas.has(globalIdx);
+    const realIdx   = REUB.sugerencias.indexOf(s);
+    const isChecked  = REUB.seleccionadas.has(realIdx);
 
     let resumen = '';
     if (s.tipo === 't1')
@@ -1638,7 +1639,7 @@ function reubRenderPage() {
 
     return `<div class="reub-card">
       <div class="reub-card-hdr" style="grid-template-columns:auto auto 1fr auto auto">
-        <input type="checkbox" ${isChecked?'checked':''} onclick="reubToggleSel(${globalIdx},event)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
+        <input type="checkbox" ${isChecked?'checked':''} onclick="reubToggleSel(${realIdx},event)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
         <span class="reub-tipo ${s.tipo}">${s.tipo_label}</span>
         <span class="reub-resumen" onclick="reubToggle(${globalIdx})" style="cursor:pointer">${resumen}</span>
         <span class="reub-impact" onclick="reubToggle(${globalIdx})" style="cursor:pointer"><span class="chip ${rotBadge}">${rotLbl}</span> · Bloque A${s.bloque}</span>
@@ -1666,7 +1667,11 @@ function reubToggleSel(idx, e) {
 
 function reubSelAll() {
   const arr = reubGetFiltered();
-  arr.forEach((_, i) => REUB.seleccionadas.add(REUB.pag * REUB_PAGE + i));
+  // Add real indices from REUB.sugerencias, not page-relative positions
+  arr.forEach(s => {
+    const realIdx = REUB.sugerencias.indexOf(s);
+    if (realIdx !== -1) REUB.seleccionadas.add(realIdx);
+  });
   reubRenderPage(); reubUpdateSelBar();
 }
 
@@ -1783,8 +1788,10 @@ function otAbrirHTML(tipo) {
 }
 
 function reubGenerarOT() {
-  const indices = [...REUB.seleccionadas].sort((a,b) => a-b);
-  const items   = indices.map(i => REUB.sugerencias[i]).filter(Boolean);
+  const items = [...REUB.seleccionadas]
+    .sort((a,b) => a-b)
+    .map(i => REUB.sugerencias[i])
+    .filter(Boolean);
   if (!items.length) return;
 
   const now    = new Date();
