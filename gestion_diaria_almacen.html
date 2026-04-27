@@ -1800,36 +1800,52 @@ function reubGenerarOT() {
     return (ord[a.tipo]||9) - (ord[b.tipo]||9);
   });
 
-  const otItems = ordenados.map(s => {
-    const p  = s.producto;
-    const pc = s.intercambio_con;
+  // Ubicaciones ya cubiertas por algún cruce T3 seleccionado — evitar duplicados
+  const ubicsCruce = new Set();
+  ordenados.forEach(s => {
     if (s.tipo === 't3') {
-      return {
-        tipo:   'cruce',
-        cod1:   p.codigo,   desc1:  p.desc,   exist1: p.exist,  rot1_1: p.rot1,
-        cod2:   pc?.codigo, desc2:  pc?.desc,  exist2: pc?.exist, rot2:  pc?.rot1,
-        desde1: s.desde,    hasta1: s.hasta,
-        desde2: s.intercambio_desde, hasta2: s.desde,
-        bloque: s.bloque,
-      };
-    } else {
-      const mOr  = MAPA.dict[s.desde] || {};
-      const mDes = s.hasta ? (MAPA.dict[s.hasta] || {}) : {};
-      return {
-        tipo:       s.tipo === 't1' ? 'picking_ocioso' : 'alta_rot_sobrestock',
-        cod:        p.codigo,
-        desc:       p.desc,
-        exist:      p.exist,
-        rot1:       p.rot1,
-        rot3:       p.rot3,
-        desde:      s.desde,
-        hasta:      s.hasta || null,
-        tipo_desde: mOr.tipo  || '',
-        tipo_hasta: mDes.tipo || '',
-        bloque:     s.bloque,
-      };
+      ubicsCruce.add(s.desde);
+      ubicsCruce.add(s.hasta);
+      ubicsCruce.add(s.intercambio_desde);
     }
   });
+
+  const otItems = ordenados
+    .filter(s => {
+      // Eliminar T1/T2 cuya ubicación origen ya está cubierta por un cruce seleccionado
+      if (s.tipo !== 't3' && ubicsCruce.has(s.desde)) return false;
+      return true;
+    })
+    .map(s => {
+      const p  = s.producto;
+      const pc = s.intercambio_con;
+      if (s.tipo === 't3') {
+        return {
+          tipo:   'cruce',
+          cod1:   p.codigo,   desc1:  p.desc,   exist1: p.exist,  rot1_1: p.rot1,
+          cod2:   pc?.codigo, desc2:  pc?.desc,  exist2: pc?.exist, rot2:  pc?.rot1,
+          desde1: s.desde,    hasta1: s.hasta,
+          desde2: s.intercambio_desde, hasta2: s.desde,
+          bloque: s.bloque,
+        };
+      } else {
+        const mOr  = MAPA.dict[s.desde] || {};
+        const mDes = s.hasta ? (MAPA.dict[s.hasta] || {}) : {};
+        return {
+          tipo:       s.tipo === 't1' ? 'picking_ocioso' : 'alta_rot_sobrestock',
+          cod:        p.codigo,
+          desc:       p.desc,
+          exist:      p.exist,
+          rot1:       p.rot1,
+          rot3:       p.rot3,
+          desde:      s.desde,
+          hasta:      s.hasta || null,
+          tipo_desde: mOr.tipo  || '',
+          tipo_hasta: mDes.tipo || '',
+          bloque:     s.bloque,
+        };
+      }
+    });
 
   const data = { titulo, meta, tipo: 'reubicacion', items: otItems };
 
