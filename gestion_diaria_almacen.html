@@ -532,11 +532,14 @@ thead th.sort-desc::after { content: ' ↓'; opacity: .7; }
           </select>
           <span class="fctr" id="ctr-reub"></span>
         </div>
-        <div id="reub-sel-bar" style="display:none; padding:8px 0; margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div id="reub-sel-bar" style="padding:8px 0; margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--text2)" id="reub-sel-count">0 seleccionadas</span>
-          <button class="btn-outline" onclick="reubSelAll()">Seleccionar todas</button>
-          <button class="btn-outline" onclick="reubSelNone()">Deseleccionar</button>
-          <button class="btn-gen" id="reub-gen-btn" disabled onclick="reubGenerarOT()">Generar OT reubicación →</button>
+          <button class="btn-outline" onclick="reubSelByTipo('todos')">Sel. filtradas</button>
+          <button class="btn-outline" onclick="reubSelByTipo('t3')" title="Solo cruces óptimos">Solo cruces</button>
+          <button class="btn-outline" onclick="reubSelByTipo('t1')" title="Solo picking ocioso">Solo picking ocioso</button>
+          <button class="btn-outline" onclick="reubSelByTipo('t2')" title="Solo alta rotación">Solo alta rot.</button>
+          <button class="btn-outline" onclick="reubSelNone()">Limpiar</button>
+          <button class="btn-gen" id="reub-gen-btn" disabled onclick="reubGenerarOT()">Generar OT →</button>
         </div>
         <div id="reub-lista"></div>
         <div class="pagrow"><span class="paginfo" id="pi-reub"></span><div class="pagbtns">
@@ -1913,6 +1916,15 @@ function reubSelAll() {
   reubRenderPage(); reubUpdateSelBar();
 }
 
+function reubSelByTipo(tipo) {
+  // Select from the FULL sugerencias array filtered by tipo, ignoring current UI filter
+  const arr = tipo === 'todos'
+    ? reubGetFiltered()  // respect current filter
+    : REUB.sugerencias.filter(s => s.tipo === tipo);
+  arr.forEach(s => REUB.seleccionadas.add(reubKey(s)));
+  reubRenderPage(); reubUpdateSelBar();
+}
+
 function reubSelNone() {
   REUB.seleccionadas.clear();
   reubRenderPage(); reubUpdateSelBar();
@@ -1927,7 +1939,19 @@ function reubUpdateSelBar() {
     btn.disabled = n === 0;
     btn.textContent = n === 0 ? 'Generar OT →' : 'Generar OT (' + n + ' movimiento' + (n>1?'s':'') + ') →';
   }
-  if (cnt) cnt.textContent = n === 0 ? '0 seleccionadas' : n + ' seleccionada' + (n>1?'s':'');
+  if (cnt) {
+    if (n === 0) { cnt.textContent = '0 seleccionadas'; return; }
+    // Count by type
+    const items = REUB.sugerencias.filter(s => REUB.seleccionadas.has(reubKey(s)));
+    const nT3 = items.filter(s => s.tipo === 't3').length;
+    const nT2 = items.filter(s => s.tipo === 't2').length;
+    const nT1 = items.filter(s => s.tipo === 't1').length;
+    const parts = [];
+    if (nT3) parts.push(nT3 + ' cruce' + (nT3>1?'s':''));
+    if (nT2) parts.push(nT2 + ' alta rot.');
+    if (nT1) parts.push(nT1 + ' picking ocioso');
+    cnt.textContent = n + ' seleccionada' + (n>1?'s':'') + (parts.length ? ' (' + parts.join(', ') + ')' : '');
+  }
 }
 
 function reubPg(dir) {
