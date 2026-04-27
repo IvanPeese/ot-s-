@@ -1309,7 +1309,7 @@ function otAbrirTeams() {
 
 /* ── MÓDULO REUBICACIÓN ── */
 const MAPA = { dict: {}, loaded: false };
-const REUB = { sugerencias: [], pag: 0, seleccionadas: new Set() };
+const REUB = { sugerencias: [], pag: 0, seleccionadas: new Set() }; // seleccionadas stores string keys
 const REUB_PAGE = 20;
 
 function handleMapaFile(input) {
@@ -1526,6 +1526,10 @@ function calcularSugerencias() {
   reubRender();
 }
 
+function reubKey(s) {
+  return s.tipo + '|' + (s.desde||'') + '|' + (s.intercambio_desde||'');
+}
+
 function reubGetFiltered() {
   let arr = [...REUB.sugerencias];
   const q      = (document.getElementById('s-reub')?.value || '').toLowerCase().trim();
@@ -1570,8 +1574,8 @@ function reubRenderPage() {
     const p         = s.producto;
     const rotBadge  = (p.rot_clase === 'alta' || p.rot_clase === 'media') ? 'ok' : p.rot_clase === 'baja' ? 'w' : 'd';
     const rotLbl    = { alta:'Alta', media:'Media', baja:'Baja', muy_baja:'Muy baja', nula:'Nula' }[p.rot_clase] || '—';
-    const realIdx   = REUB.sugerencias.indexOf(s);
-    const isChecked  = REUB.seleccionadas.has(realIdx);
+    const itemKey    = reubKey(s);
+    const isChecked  = REUB.seleccionadas.has(itemKey);
 
     let resumen = '';
     if (s.tipo === 't1')
@@ -1639,7 +1643,7 @@ function reubRenderPage() {
 
     return `<div class="reub-card">
       <div class="reub-card-hdr" style="grid-template-columns:auto auto 1fr auto auto">
-        <input type="checkbox" ${isChecked?'checked':''} onclick="reubToggleSel(${realIdx},event)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
+        <input type="checkbox" ${isChecked?'checked':''} onclick="reubToggleSel('${itemKey}',event)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
         <span class="reub-tipo ${s.tipo}">${s.tipo_label}</span>
         <span class="reub-resumen" onclick="reubToggle(${globalIdx})" style="cursor:pointer">${resumen}</span>
         <span class="reub-impact" onclick="reubToggle(${globalIdx})" style="cursor:pointer"><span class="chip ${rotBadge}">${rotLbl}</span> · Bloque A${s.bloque}</span>
@@ -1658,20 +1662,16 @@ function reubToggle(idx) {
   if (chev) chev.textContent = open ? '▼' : '▶';
 }
 
-function reubToggleSel(idx, e) {
+function reubToggleSel(key, e) {
   e.stopPropagation();
-  if (REUB.seleccionadas.has(idx)) REUB.seleccionadas.delete(idx);
-  else REUB.seleccionadas.add(idx);
+  if (REUB.seleccionadas.has(key)) REUB.seleccionadas.delete(key);
+  else REUB.seleccionadas.add(key);
   reubUpdateSelBar();
 }
 
 function reubSelAll() {
   const arr = reubGetFiltered();
-  // Add real indices from REUB.sugerencias, not page-relative positions
-  arr.forEach(s => {
-    const realIdx = REUB.sugerencias.indexOf(s);
-    if (realIdx !== -1) REUB.seleccionadas.add(realIdx);
-  });
+  arr.forEach(s => REUB.seleccionadas.add(reubKey(s)));
   reubRenderPage(); reubUpdateSelBar();
 }
 
@@ -1679,6 +1679,7 @@ function reubSelNone() {
   REUB.seleccionadas.clear();
   reubRenderPage(); reubUpdateSelBar();
 }
+
 
 function reubUpdateSelBar() {
   const n   = REUB.seleccionadas.size;
@@ -1788,10 +1789,8 @@ function otAbrirHTML(tipo) {
 }
 
 function reubGenerarOT() {
-  const items = [...REUB.seleccionadas]
-    .sort((a,b) => a-b)
-    .map(i => REUB.sugerencias[i])
-    .filter(Boolean);
+  // Resolve selected items by stable key
+  const items = REUB.sugerencias.filter(s => REUB.seleccionadas.has(reubKey(s)));
   if (!items.length) return;
 
   const now    = new Date();
