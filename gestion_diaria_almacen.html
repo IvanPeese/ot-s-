@@ -625,10 +625,10 @@ async function autoLoad() {
   // Try to load CSV from GitHub Pages repo
   try {
     const res = await fetch(REPO_BASE + '/Almacen_A.csv', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('CSV no encontrado');
-    const text = await res.text();
-    // Detect if it's actually a CSV (has semicolons) not a 404 HTML page
-    if (!text.includes(';')) throw new Error('Respuesta no es un CSV válido');
+    if (!res.ok) throw new Error('CSV no encontrado (' + res.status + ')');
+    const buf  = await res.arrayBuffer();
+    const text = new TextDecoder('iso-8859-1').decode(buf);
+    if (text.length < 10) throw new Error('CSV vacío');
     processData(text);
     // Also try to auto-load mapa
     autoLoadMapa();
@@ -644,9 +644,10 @@ async function autoLoad() {
 async function autoLoadMapa() {
   try {
     const res = await fetch(REPO_BASE + '/Mapa_almacen.csv', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('Mapa no encontrado');
-    const text = await res.text();
-    if (!text.includes(';')) throw new Error('No es CSV');
+    if (!res.ok) throw new Error('Mapa no encontrado (' + res.status + ')');
+    const buf  = await res.arrayBuffer();
+    const text = new TextDecoder('iso-8859-1').decode(buf);
+    if (text.length < 10) throw new Error('Mapa vacío');
     procesaMapa(text);
   } catch(e) {
     // Silent fail — mapa is optional, user can load it manually
