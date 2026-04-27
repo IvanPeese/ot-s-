@@ -648,11 +648,9 @@ async function autoLoadMapa() {
     const text = await res.text();
     if (!text.includes(';')) throw new Error('No es CSV');
     procesaMapa(text);
-    // Hide mapa upload warning in reubicacion panel
-    const warn = document.getElementById('reub-upload-warn');
-    if (warn) warn.style.display = 'none';
   } catch(e) {
     // Silent fail — mapa is optional, user can load it manually
+    console.warn('Mapa no cargado automáticamente:', e.message);
   }
 }
 
@@ -749,6 +747,13 @@ function processData(text) {
   renderZonasPanel();
   otInit();
   if (MAPA.loaded) calcularSugerencias();
+  // Ensure reub-upload-warn stays hidden if mapa already loaded
+  if (MAPA.loaded) {
+    const warn = document.getElementById('reub-upload-warn');
+    if (warn) warn.style.display = 'none';
+    const rc = document.getElementById('reub-content');
+    if (rc) rc.style.display = 'block';
+  }
 }
 
 /* ── ALERTAS ── */
@@ -1366,9 +1371,13 @@ function procesaMapa(text) {
     };
   });
   MAPA.loaded = true;
-  document.getElementById('reub-upload-warn').style.display = 'none';
-  document.getElementById('reub-content').style.display = 'block';
-  if (S.sets && S.sets.conUbic) calcularSugerencias();
+  // Always hide the manual upload warning — mapa is now loaded
+  const warn = document.getElementById('reub-upload-warn');
+  if (warn) warn.style.display = 'none';
+  const rc = document.getElementById('reub-content');
+  if (rc) rc.style.display = 'block';
+  // Only calculate if stock data is also ready
+  if (S.sets && S.sets.conUbic && S.sets.conUbic.length > 0) calcularSugerencias();
 }
 
 function rotClase(rot1, rot3) {
