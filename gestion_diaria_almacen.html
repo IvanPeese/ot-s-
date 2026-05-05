@@ -634,6 +634,29 @@ thead th.sort-desc::after { content: ' ↓'; opacity: .7; }
 
 <script>
 const DEFAULT_PAGE = 30;
+
+/* ── UMBRALES PESO / VOLUMEN ── */
+const UMBRAL_PESO_PESADO = 2.3;   // kg  — por encima → ubicación de suelo (nivel 0)
+const UMBRAL_VOL_GRANDE  = 0.025; // m³  — por encima → bloque grande (A06-A16)
+
+function clasePeso(peso) {
+  if (peso <= 0) return 'desconocido';
+  return peso >= UMBRAL_PESO_PESADO ? 'pesado' : 'ligero';
+}
+function claseVolumen(vol) {
+  if (vol <= 0) return 'desconocido';
+  return vol >= UMBRAL_VOL_GRANDE ? 'grande' : 'pequeño';
+}
+// ¿La ubicación es compatible con el producto?
+function ubicCompatible(m, pesoCls, volCls) {
+  if (!m) return false;
+  // Restricción de volumen: grande → solo A06-A16
+  if (volCls === 'grande'  && m.tamanyo === 'pequeño') return false;
+  // Restricción de volumen: pequeño → solo A01-A05 (no obligamos, es sugerencia)
+  // Restricción de peso: pesado → solo nivel 0
+  if (pesoCls === 'pesado' && parseInt(m.nivel) !== 0) return false;
+  return true;
+}
 function getPageSize(tab) { return S.pageSize?.[tab] || DEFAULT_PAGE; }
 
 const GRUPOS = [
@@ -1641,6 +1664,8 @@ function calcularSugerencias() {
     const m    = MAPA.dict[ubic];
     const rot1 = pn(r['UDS_1Mes']), rot3 = pn(r['UDS_3Meses']);
     if (m) { m.ocupada = true; m.producto = r['Codigo']; }
+    const peso = pn(r['Peso']);
+    const vol  = pn(r['Volumen']);
     return {
       codigo: r['Codigo'], desc: r['Descripcion'],
       ubic, rot1, rot3, exist: pn(r['Existencias']),
@@ -1652,6 +1677,9 @@ function calcularSugerencias() {
       nivel:      m ? m.nivel   : '',
       alto:       m ? m.alto    : 0,
       comentario: m ? m.comentario : '',
+      peso, vol,
+      pesoCls: clasePeso(peso),
+      volCls:  claseVolumen(vol),
     };
   });
 
@@ -1685,23 +1713,38 @@ function calcularSugerencias() {
     if (!libresIdx[k]) libresIdx[k] = [];
     libresIdx[k].push(m);
   });
-  function nextMuerto(bloque, tamanyo) {
-    const exact = (muertosIdx[bloque+'|'+tamanyo] || []).find(m => !procesados.has(m.ubic) && !destinosUsados.has(m.ubic));
+  // nextMuerto: busca picking muerto compatible con el producto candidato (pesoCls/volCls del candidato)
+  function nextMuerto(bloque, tamanyo, pesoCls, volCls) {
+    const cand = p => !procesados.has(p.ubic) && !destinosUsados.has(p.ubic);
+    // Mismo bloque y tamaño
+    const exact = (muertosIdx[bloque+'|'+tamanyo] || []).find(cand);
     if (exact) return exact;
+    // Cualquier bloque del mismo tamaño
     for (const k of Object.keys(muertosIdx)) {
       if (k.endsWith('|'+tamanyo)) {
-        const m = muertosIdx[k].find(x => !procesados.has(x.ubic) && !destinosUsados.has(x.ubic));
+        const m = muertosIdx[k].find(cand);
         if (m) return m;
       }
     }
     return null;
   }
-  function nextLibre(bloque, tamanyo) {
-    const exact = (libresIdx[bloque+'|'+tamanyo] || []).find(m => !destinosUsados.has(m.ubic));
+  // nextLibre: busca picking libre compatible con el producto (pesoCls/volCls)
+  function nextLibre(bloque, tamanyo, pesoCls, volCls) {
+    const cand = m => !destinosUsados.has(m.ubic) && ubicCompatible(m, pesoCls, volCls);
+    // Mismo bloque y tamaño
+    const exact = (libresIdx[bloque+'|'+tamanyo] || []).find(cand);
     if (exact) return exact;
+    // Mismo tamaño, cualquier bloque — respetando volumen
     for (const k of Object.keys(libresIdx)) {
       if (k.endsWith('|'+tamanyo)) {
-        const m = libresIdx[k].find(x => !destinosUsados.has(x.ubic));
+        const m = libresIdx[k].find(cand);
+        if (m) return m;
+      }
+    }
+    // Si volCls desconocido, no forzar restricción de tamaño
+    if (volCls === 'desconocido') {
+      for (const k of Object.keys(libresIdx)) {
+        const m = libresIdx[k].find(m => !destinosUsados.has(m.ubic) && (pesoCls !== 'pesado' || parseInt(m.nivel) === 0));
         if (m) return m;
       }
     }
@@ -1716,7 +1759,7 @@ function calcularSugerencias() {
     if (procesados.has(p.ubic)) return;
 
     // a) Buscar picking muerto para cruce usando índice
-    const muertoCruce = nextMuerto(p.bloque, p.tamanyo);
+    const muertoCruce = nextMuerto(p.bloque, p.tamanyo, p.pesoCls, p.volCls);
 
     if (muertoCruce) {
       // Cruce: alta rot va al picking del muerto, muerto va al sobrestock de alta rot
@@ -1738,13 +1781,15 @@ function calcularSugerencias() {
     }
 
     // b) No hay muerto disponible — buscar picking libre usando índice
-    const pickLibre = nextLibre(p.bloque, p.tamanyo);
+    const pickLibre = nextLibre(p.bloque, p.tamanyo, p.pesoCls, p.volCls);
 
     sugerencias.push({
       tipo: 't2', tipo_label: 'Alta rotación en sobrestock',
       producto: p, desde: p.ubic,
       hasta: pickLibre ? pickLibre.ubic : null,
       impacto: p.rot1, bloque: p.bloque,
+      peso_aviso: p.pesoCls === 'pesado',
+      vol_aviso: !pickLibre && p.volCls !== 'desconocido',
     });
     procesados.add(p.ubic);
     if (pickLibre) destinosUsados.add(pickLibre.ubic);
