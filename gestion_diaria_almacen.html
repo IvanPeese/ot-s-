@@ -647,15 +647,47 @@ function claseVolumen(vol) {
   if (vol <= 0) return 'desconocido';
   return vol >= UMBRAL_VOL_GRANDE ? 'grande' : 'pequeño';
 }
-// ¿La ubicación es compatible con el producto?
 function ubicCompatible(m, pesoCls, volCls) {
   if (!m) return false;
-  // Restricción de volumen: grande → solo A06-A16
   if (volCls === 'grande'  && m.tamanyo === 'pequeño') return false;
-  // Restricción de volumen: pequeño → solo A01-A05 (no obligamos, es sugerencia)
-  // Restricción de peso: pesado → solo nivel 0
   if (pesoCls === 'pesado' && parseInt(m.nivel) !== 0) return false;
   return true;
+}
+
+/* ── UMBRALES DE ROTACIÓN DINÁMICOS (percentiles) ── */
+// Calculados en cada carga del CSV sobre el universo de productos con rot > 0
+const ROT = { p25: 2, p50: 5, p75: 10, p90: 19 }; // valores por defecto
+
+function calcularPercentilesRotacion(rows) {
+  const vals = rows
+    .map(r => pn(r['UDS_1Mes']))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  if (!vals.length) return;
+  const pct = p => vals[Math.min(Math.floor(vals.length * p / 100), vals.length - 1)];
+  ROT.p25 = pct(25);
+  ROT.p50 = pct(50);
+  ROT.p75 = pct(75);
+  ROT.p90 = pct(90);
+  console.log('Percentiles rotación:', ROT);
+}
+
+function rotClase(rot1, rot3) {
+  // Nula y muy_baja: criterio absoluto
+  if (rot1 === 0 && rot3 === 0) return 'nula';
+  if (rot1 === 0 && rot3 > 0)   return 'muy_baja';
+  // Resto: percentil dinámico
+  if (rot1 >= ROT.p75) return 'alta';
+  if (rot1 >= ROT.p25) return 'media';
+  return 'baja';
+}
+
+// Prioridad numérica para ordenar candidatos a picking
+function rotPrioridad(rot1) {
+  if (rot1 >= ROT.p90) return 4;
+  if (rot1 >= ROT.p75) return 3;
+  if (rot1 >= ROT.p25) return 2; // media — candidato válido
+  return 1;
 }
 function getPageSize(tab) { return S.pageSize?.[tab] || DEFAULT_PAGE; }
 
@@ -846,6 +878,7 @@ function processData(text) {
 }
 
 function computeSets(rows) {
+  calcularPercentilesRotacion(rows);
 
   // Conjuntos base
   const conUbic   = rows.filter(r => (r['UbicacionCodigo'] || '').trim());
@@ -1644,13 +1677,7 @@ function procesaMapa(text) {
   if (S.sets && S.sets.conUbic && S.sets.conUbic.length > 0) calcularSugerencias();
 }
 
-function rotClase(rot1, rot3) {
-  if (rot1 > 20) return 'alta';
-  if (rot1 > 5)  return 'media';
-  if (rot1 > 0)  return 'baja';
-  if (rot3 > 0)  return 'muy_baja';
-  return 'nula';
-}
+// rotClase defined above with dynamic percentiles
 
 function calcularSugerencias() {
   if (!MAPA.loaded || !S.rows || !S.rows.length) return;
@@ -1691,7 +1718,11 @@ function calcularSugerencias() {
   const sobreLibres    = Object.values(MAPA.dict).filter(m => m.tipo === 'sobrestock' && !m.ocupada);
 
   const pickMuertos    = productos.filter(p => p.tipo_ubic === 'picking'    && (p.rot_clase === 'nula' || p.rot_clase === 'muy_baja'));
-  const sobreAltaMedia = productos.filter(p => p.tipo_ubic === 'sobrestock' && (p.rot_clase === 'alta' || p.rot_clase === 'media'));
+  // sobreAltaMedia: productos en sobrestock con rotación ≥ P25 (media o alta)
+  // ordenados por prioridad descendente para que los de mayor rotación se sirvan primero
+  const sobreAltaMedia = productos
+    .filter(p => p.tipo_ubic === 'sobrestock' && (p.rot_clase === 'alta' || p.rot_clase === 'media'))
+    .sort((a, b) => rotPrioridad(b.rot1) - rotPrioridad(a.rot1) || b.rot1 - a.rot1);
 
   const sugerencias = [];
   const procesados  = new Set();
@@ -1840,10 +1871,12 @@ function calcularSugerencias() {
 
   document.getElementById('reub-kpis').innerHTML = `
     <div class="kpi"><div class="kpi-lbl">Total sugerencias</div><div class="kpi-val ac">${dedup.length}</div><div class="kpi-sub">movimientos propuestos</div></div>
-    <div class="kpi"><div class="kpi-lbl">Picking ocioso</div><div class="kpi-val d">${t1}</div><div class="kpi-sub">liberar posiciones</div></div>
-    <div class="kpi"><div class="kpi-lbl">Alta rot. en sobre.</div><div class="kpi-val ok">${t2}</div><div class="kpi-sub">bajar a picking</div></div>
+    <div class="kpi"><div class="kpi-lbl">Picking ocioso</div><div class="kpi-val d">${t1}</div><div class="kpi-sub">rot. nula o muy baja</div></div>
+    <div class="kpi"><div class="kpi-lbl">En sobrestock</div><div class="kpi-val ok">${t2}</div><div class="kpi-sub">rot. media o alta</div></div>
     <div class="kpi"><div class="kpi-lbl">Cruces óptimos</div><div class="kpi-val" style="color:var(--info-txt)">${t3}</div><div class="kpi-sub">intercambio directo</div></div>
-    <div class="kpi"><div class="kpi-lbl">Picking libres</div><div class="kpi-val">${pickLibN}</div><div class="kpi-sub">disponibles ahora</div></div>`;
+    <div class="kpi"><div class="kpi-lbl">Picking libres</div><div class="kpi-val">${pickLibN}</div><div class="kpi-sub">disponibles ahora</div></div>
+    <div class="kpi"><div class="kpi-lbl">Umbral media</div><div class="kpi-val" style="font-size:14px">≥${ROT.p25} ud/mes</div><div class="kpi-sub">P25 dinámico</div></div>
+    <div class="kpi"><div class="kpi-lbl">Umbral alta</div><div class="kpi-val" style="font-size:14px">≥${ROT.p75} ud/mes</div><div class="kpi-sub">P75 dinámico</div></div>`;
 
   setEl('cnt-reubic', dedup.length);
   const badge = document.getElementById('cnt-reubic');
@@ -1904,7 +1937,7 @@ function reubRenderPage() {
   lista.innerHTML = slice.map((s, idx) => {
     const globalIdx = page * REUB_PAGE + idx;
     const p         = s.producto;
-    const rotBadge  = (p.rot_clase === 'alta' || p.rot_clase === 'media') ? 'ok' : p.rot_clase === 'baja' ? 'w' : 'd';
+    const rotBadge  = p.rot_clase === 'alta' ? 'ok' : p.rot_clase === 'media' ? 'ok' : p.rot_clase === 'baja' ? 'w' : 'd';
     const rotLbl    = { alta:'Alta', media:'Media', baja:'Baja', muy_baja:'Muy baja', nula:'Nula' }[p.rot_clase] || '—';
     const itemKey    = reubKey(s);
     const isChecked  = REUB.seleccionadas.has(itemKey);
